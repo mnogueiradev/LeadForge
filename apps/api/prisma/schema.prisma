@@ -1,0 +1,1274 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// -------------------------------------------------------------
+// CORE DOMAIN: Tenants & Identity
+// -------------------------------------------------------------
+
+model Tenant {
+  id        String       @id @default(uuid()) @db.Char(36)
+  name      String       @db.VarChar(100)
+  slug      String       @unique @db.VarChar(100)
+  status    TenantStatus @default(ACTIVE)
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+  deletedAt DateTime?    @map("deleted_at")
+
+  users                User[]
+  roles                Role[]
+  integrations         Integration[]
+  settings             Setting[]
+  featureFlags         FeatureFlag[]
+  auditLogs            AuditLog[]
+  securityLogs         SecurityLog[]
+  invitations          Invitation[]
+  sessions             Session[]
+  tenantSecurityPolicy TenantSecurityPolicy?
+  organizations        Organization[]
+  contacts             Contact[]
+  customFields         CustomField[]
+  customFieldValues    CustomFieldValue[]
+  tags                 Tag[]
+  tagAssignments       TagAssignment[]
+  notes                Note[]
+  timelineEvents       TimelineEvent[]
+  leads                Lead[]
+  pipelines            Pipeline[]
+
+  pipelineStages PipelineStage[]
+  deals          Deal[]
+  dealMovements  DealMovement[]
+  activities     Activity[]      @relation("TenantActivities")
+  calendarEvents CalendarEvent[] @relation("TenantCalendarEvents")
+  attachments    Attachment[]
+
+  @@map("tenants")
+}
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+  CANCELLED
+}
+
+model User {
+  id           String    @id @default(uuid()) @db.Char(36)
+  tenantId     String    @map("tenant_id") @db.Char(36)
+  firstName    String    @map("first_name") @db.VarChar(100)
+  lastName     String    @map("last_name") @db.VarChar(100)
+  email        String    @db.VarChar(255)
+  passwordHash String    @map("password_hash") @db.VarChar(255)
+  phone        String?   @db.VarChar(20)
+  jobTitle     String?   @map("job_title") @db.VarChar(100)
+  isActive     Boolean   @default(true) @map("is_active")
+  lastLoginAt  DateTime? @map("last_login_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  tenant                Tenant                @relation(fields: [tenantId], references: [id])
+  userRoles             UserRole[]
+  auditLogs             AuditLog[]
+  securityLogs          SecurityLog[]
+  invitationsSent       Invitation[]          @relation("InvitedBy")
+  sessions              Session[]
+  passwordHistory       UserPasswordHistory[]
+  organizationsOwned    Organization[]        @relation("OrganizationOwner")
+  contactsOwned         Contact[]             @relation("ContactOwner")
+  tagsCreated           Tag[]                 @relation("TagCreator")
+  tagsAssigned          TagAssignment[]       @relation("TagAssigner")
+  notesCreated          Note[]                @relation("NoteAuthor")
+  eventsActed           TimelineEvent[]       @relation("EventActor")
+  eventsTargeted        TimelineEvent[]       @relation("EventTarget")
+  leadsOwned            Lead[]                @relation("LeadOwner")
+  pipelinesCreated      Pipeline[]            @relation("PipelineCreator")
+  pipelineStagesCreated PipelineStage[]       @relation("PipelineStageCreator")
+  dealsOwned            Deal[]                @relation("DealOwner")
+  dealMovements         DealMovement[]
+  ownedActivities       Activity[]            @relation("ActivityOwner")
+  createdActivities     Activity[]            @relation("ActivityCreator")
+  calendarEvents        CalendarEvent[]       @relation("CalendarEventOwner")
+  uploadedAttachments   Attachment[]
+
+  @@unique([tenantId, email], name: "uq_users_tenant_email")
+  @@index([tenantId, email])
+  @@map("users")
+}
+
+// -------------------------------------------------------------
+// CORE DOMAIN: Sessions
+// -------------------------------------------------------------
+
+enum SessionStatus {
+  ACTIVE
+  REVOKED
+  EXPIRED
+}
+
+model Session {
+  id               String        @id @default(uuid()) @db.Char(36)
+  tenantId         String        @map("tenant_id") @db.Char(36)
+  userId           String        @map("user_id") @db.Char(36)
+  refreshTokenHash String        @map("refresh_token_hash") @db.VarChar(255)
+  familyId         String        @map("family_id") @db.VarChar(100)
+  deviceName       String?       @map("device_name") @db.VarChar(100)
+  deviceType       String?       @map("device_type") @db.VarChar(50)
+  browser          String?       @db.VarChar(50)
+  os               String?       @db.VarChar(50)
+  ipAddress        String?       @map("ip_address") @db.VarChar(45)
+  userAgent        String?       @map("user_agent") @db.VarChar(255)
+  country          String?       @db.VarChar(50)
+  city             String?       @db.VarChar(100)
+  status           SessionStatus @default(ACTIVE)
+  lastActivityAt   DateTime      @default(now()) @map("last_activity_at")
+  expiresAt        DateTime      @map("expires_at")
+  createdAt        DateTime      @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([userId, status])
+  @@index([familyId])
+  @@map("sessions")
+}
+
+// -------------------------------------------------------------
+// CORE DOMAIN: Security Policies
+// -------------------------------------------------------------
+
+model TenantSecurityPolicy {
+  tenantId             String   @id @map("tenant_id") @db.Char(36)
+  passwordPolicy       Json     @map("password_policy")
+  sessionPolicy        Json     @map("session_policy")
+  authenticationPolicy Json     @map("authentication_policy")
+  accessPolicy         Json     @map("access_policy")
+  invitationPolicy     Json     @map("invitation_policy")
+  auditPolicy          Json     @map("audit_policy")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("tenant_security_policies")
+}
+
+model UserPasswordHistory {
+  id           String   @id @default(uuid()) @db.Char(36)
+  userId       String   @map("user_id") @db.Char(36)
+  passwordHash String   @map("password_hash") @db.VarChar(255)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("user_password_history")
+}
+
+// -------------------------------------------------------------
+// CORE DOMAIN: RBAC (Roles & Permissions)
+// -------------------------------------------------------------
+
+model Role {
+  id        String    @id @default(uuid()) @db.Char(36)
+  tenantId  String    @map("tenant_id") @db.Char(36)
+  name      String    @db.VarChar(50)
+  isSystem  Boolean   @default(false) @map("is_system")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  tenant      Tenant           @relation(fields: [tenantId], references: [id])
+  userRoles   UserRole[]
+  permissions RolePermission[]
+  invitations Invitation[]
+
+  @@index([tenantId])
+  @@map("roles")
+}
+
+model Permission {
+  id          String  @id @default(uuid()) @db.Char(36)
+  name        String  @unique @db.VarChar(100)
+  description String? @db.VarChar(255)
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model UserRole {
+  userId String @map("user_id") @db.Char(36)
+  roleId String @map("role_id") @db.Char(36)
+
+  user User @relation(fields: [userId], references: [id])
+  role Role @relation(fields: [roleId], references: [id])
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  roleId       String @map("role_id") @db.Char(36)
+  permissionId String @map("permission_id") @db.Char(36)
+
+  role       Role       @relation(fields: [roleId], references: [id])
+  permission Permission @relation(fields: [permissionId], references: [id])
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+// -------------------------------------------------------------
+// CORE DOMAIN: Invitations & Onboarding
+// -------------------------------------------------------------
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  CANCELLED
+}
+
+model Invitation {
+  id          String           @id @default(uuid()) @db.Char(36)
+  tenantId    String           @map("tenant_id") @db.Char(36)
+  email       String           @db.VarChar(255)
+  roleId      String           @map("role_id") @db.Char(36)
+  invitedById String           @map("invited_by_id") @db.Char(36)
+  token       String           @unique @db.VarChar(64)
+  status      InvitationStatus @default(PENDING)
+  expiresAt   DateTime         @map("expires_at")
+  acceptedAt  DateTime?        @map("accepted_at")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  tenant    Tenant @relation(fields: [tenantId], references: [id])
+  role      Role   @relation(fields: [roleId], references: [id])
+  invitedBy User   @relation("InvitedBy", fields: [invitedById], references: [id])
+
+  @@unique([tenantId, email], name: "uq_invitation_tenant_email")
+  @@index([token])
+  @@index([tenantId, status])
+  @@map("invitations")
+}
+
+// -------------------------------------------------------------
+// INFRASTRUCTURE DOMAIN: Configs, Integrations & Audit
+// -------------------------------------------------------------
+
+model Integration {
+  id              String    @id @default(uuid()) @db.Char(36)
+  tenantId        String    @map("tenant_id") @db.Char(36)
+  provider        String    @db.VarChar(50)
+  credentialsJson Json      @map("credentials_json")
+  status          String?   @db.VarChar(20)
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId, provider])
+  @@map("integrations")
+}
+
+model Setting {
+  tenantId  String @map("tenant_id") @db.Char(36)
+  key       String @db.VarChar(100)
+  valueJson Json   @map("value_json")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@id([tenantId, key])
+  @@map("settings")
+}
+
+model FeatureFlag {
+  tenantId    String  @map("tenant_id") @db.Char(36)
+  featureName String  @map("feature_name") @db.VarChar(100)
+  isEnabled   Boolean @default(false) @map("is_enabled")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@id([tenantId, featureName])
+  @@map("feature_flags")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Char(36)
+  tenantId   String   @map("tenant_id") @db.Char(36)
+  userId     String?  @map("user_id") @db.Char(36)
+  action     String   @db.VarChar(50)
+  entityName String   @map("entity_name") @db.VarChar(50)
+  entityId   String   @map("entity_id") @db.Char(36)
+  oldValues  Json?    @map("old_values")
+  newValues  Json?    @map("new_values")
+  ipAddress  String?  @map("ip_address") @db.VarChar(45)
+  userAgent  String?  @map("user_agent") @db.VarChar(255)
+  requestId  String?  @map("request_id") @db.VarChar(100)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  user   User?  @relation(fields: [userId], references: [id])
+
+  @@index([tenantId, entityName, entityId])
+  @@index([tenantId, createdAt])
+  @@map("audit_logs")
+}
+
+enum SecurityLogSeverity {
+  INFO
+  WARNING
+  ERROR
+  CRITICAL
+}
+
+model SecurityLog {
+  id        String              @id @default(uuid()) @db.Char(36)
+  tenantId  String              @map("tenant_id") @db.Char(36)
+  userId    String?             @map("user_id") @db.Char(36)
+  eventType String              @map("event_type") @db.VarChar(50)
+  action    String              @db.VarChar(50)
+  severity  SecurityLogSeverity @default(INFO)
+  details   Json?
+  ipAddress String?             @map("ip_address") @db.VarChar(45)
+  userAgent String?             @map("user_agent") @db.VarChar(255)
+  requestId String?             @map("request_id") @db.VarChar(100)
+  createdAt DateTime            @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  user   User?  @relation(fields: [userId], references: [id])
+
+  @@index([tenantId, severity])
+  @@index([tenantId, eventType])
+  @@index([tenantId, createdAt])
+  @@map("security_logs")
+}
+
+// -------------------------------------------------------------
+// CRM DOMAIN: Organizations & Accounts
+// -------------------------------------------------------------
+
+enum OrganizationStatus {
+  PROSPECT
+  CUSTOMER
+  PARTNER
+  SUPPLIER
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum CompanySize {
+  MICRO
+  SMALL
+  MEDIUM
+  LARGE
+  ENTERPRISE
+}
+
+model Organization {
+  id          String             @id @default(uuid()) @db.Char(36)
+  tenantId    String             @map("tenant_id") @db.Char(36)
+  name        String             @db.VarChar(255)
+  legalName   String?            @map("legal_name") @db.VarChar(255)
+  document    String?            @db.VarChar(50) // CNPJ, Tax ID, EIN
+  website     String?            @db.VarChar(255)
+  industry    String?            @db.VarChar(100) // Segmento de atuação
+  companySize CompanySize?       @map("company_size")
+  description String?            @db.Text
+  status      OrganizationStatus @default(PROSPECT)
+  ownerUserId String?            @map("owner_user_id") @db.Char(36)
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  tenant         Tenant                @relation(fields: [tenantId], references: [id])
+  owner          User?                 @relation("OrganizationOwner", fields: [ownerUserId], references: [id])
+  addresses      OrganizationAddress[]
+  contacts       Contact[]
+  customFields   CustomFieldValue[]
+  tags           TagAssignment[]
+  notes          Note[]
+  leads          Lead[]
+  deals          Deal[]
+  activities     Activity[]            @relation("OrganizationActivities")
+  calendarEvents CalendarEvent[]       @relation("OrganizationCalendarEvents")
+  attachments    Attachment[]
+
+  @@unique([tenantId, document])
+  @@index([tenantId, status])
+  @@index([tenantId, name])
+  @@map("organizations")
+}
+
+model OrganizationAddress {
+  id             String  @id @default(uuid()) @db.Char(36)
+  organizationId String  @map("organization_id") @db.Char(36)
+  type           String  @default("HQ") @db.VarChar(20) // HQ, BILLING, SHIPPING
+  street         String  @db.VarChar(255)
+  number         String? @db.VarChar(50)
+  complement     String? @db.VarChar(100)
+  neighborhood   String? @db.VarChar(100)
+  city           String  @db.VarChar(100)
+  state          String  @db.VarChar(50)
+  country        String  @default("BR") @db.VarChar(50)
+  postalCode     String? @map("postal_code") @db.VarChar(20)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("organization_addresses")
+}
+
+// -------------------------------------------------------------
+// CRM DOMAIN: Contacts
+// -------------------------------------------------------------
+
+enum ContactStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+  ARCHIVED
+}
+
+enum ContactSource {
+  MANUAL
+  IMPORT
+  TELEGRAM
+  WHATSAPP
+  API
+  WEBSITE
+  LANDING_PAGE
+  OTHER
+}
+
+enum ConsentStatus {
+  PENDING
+  GRANTED
+  REVOKED
+}
+
+model Contact {
+  id             String  @id @default(uuid()) @db.Char(36)
+  tenantId       String  @map("tenant_id") @db.Char(36)
+  organizationId String? @map("organization_id") @db.Char(36)
+  ownerUserId    String? @map("owner_user_id") @db.Char(36)
+
+  firstName    String  @map("first_name") @db.VarChar(100)
+  lastName     String? @map("last_name") @db.VarChar(100)
+  primaryEmail String? @map("primary_email") @db.VarChar(255)
+  primaryPhone String? @map("primary_phone") @db.VarChar(50)
+
+  jobTitle   String?   @map("job_title") @db.VarChar(100)
+  department String?   @db.VarChar(100)
+  birthDate  DateTime? @map("birth_date") @db.Date
+
+  status ContactStatus @default(ACTIVE)
+  source ContactSource @default(MANUAL)
+
+  description String? @db.Text
+  avatarUrl   String? @map("avatar_url") @db.VarChar(500)
+
+  // Consentimento LGPD
+  consentStatus ConsentStatus @default(PENDING) @map("consent_status")
+  consentSource String?       @map("consent_source") @db.VarChar(255)
+  consentDate   DateTime?     @map("consent_date")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id])
+  organization Organization? @relation(fields: [organizationId], references: [id])
+  owner        User?         @relation("ContactOwner", fields: [ownerUserId], references: [id])
+
+  emails         ContactEmail[]
+  phones         ContactPhone[]
+  customFields   CustomFieldValue[]
+  tags           TagAssignment[]
+  notes          Note[]
+  leads          Lead[]
+  deals          Deal[]
+  activities     Activity[]         @relation("ContactActivities")
+  calendarEvents CalendarEvent[]    @relation("ContactCalendarEvents")
+  attachments    Attachment[]
+
+  @@unique([tenantId, primaryEmail])
+  @@index([tenantId, status])
+  @@index([tenantId, ownerUserId])
+  @@index([tenantId, organizationId])
+  @@map("contacts")
+}
+
+model ContactEmail {
+  id        String  @id @default(uuid()) @db.Char(36)
+  contactId String  @map("contact_id") @db.Char(36)
+  email     String  @db.VarChar(255)
+  type      String  @default("WORK") @db.VarChar(50) // PERSONAL, WORK, OTHER
+  isPrimary Boolean @default(false) @map("is_primary")
+
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@index([contactId])
+  @@map("contact_emails")
+}
+
+model ContactPhone {
+  id        String  @id @default(uuid()) @db.Char(36)
+  contactId String  @map("contact_id") @db.Char(36)
+  number    String  @db.VarChar(50)
+  type      String  @default("MOBILE") @db.VarChar(50) // MOBILE, WORK, HOME, WHATSAPP
+  isPrimary Boolean @default(false) @map("is_primary")
+
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@index([contactId])
+  @@map("contact_phones")
+}
+
+// -------------------------------------------------------------
+// CRM DOMAIN: Custom Fields Engine
+// -------------------------------------------------------------
+
+enum EntityType {
+  CONTACT
+  ORGANIZATION
+  LEAD
+  DEAL
+}
+
+enum CustomFieldType {
+  TEXT
+  LONG_TEXT
+  NUMBER
+  DECIMAL
+  BOOLEAN
+  DATE
+  DATETIME
+  EMAIL
+  PHONE
+  URL
+  SELECT
+  MULTI_SELECT
+  JSON
+}
+
+model CustomField {
+  id         String     @id @default(uuid()) @db.Char(36)
+  tenantId   String     @map("tenant_id") @db.Char(36)
+  entityType EntityType @map("entity_type")
+
+  name        String          @db.VarChar(100)
+  slug        String          @db.VarChar(100)
+  description String?         @db.Text
+  fieldType   CustomFieldType @map("field_type")
+
+  // Regras e Validações
+  isRequired   Boolean @default(false) @map("is_required")
+  isUnique     Boolean @default(false) @map("is_unique")
+  options      Json? // { choices: [{ label: 'A', value: 'a', color: 'red' }] }
+  validation   Json? // { min: 0, max: 100, regex: '^[0-9]+$' }
+  defaultValue Json?   @map("default_value")
+
+  isActive     Boolean @default(true) @map("is_active")
+  displayOrder Int     @default(0) @map("display_order")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  values CustomFieldValue[]
+
+  @@unique([tenantId, entityType, slug])
+  @@index([tenantId, entityType])
+  @@map("custom_fields")
+}
+
+model CustomFieldValue {
+  id            String @id @default(uuid()) @db.Char(36)
+  tenantId      String @map("tenant_id") @db.Char(36)
+  customFieldId String @map("custom_field_id") @db.Char(36)
+
+  // Vínculos Polimórficos Simulados (Múltiplas FKs para integridade)
+  entityType     EntityType @map("entity_type")
+  contactId      String?    @map("contact_id") @db.Char(36)
+  organizationId String?    @map("organization_id") @db.Char(36)
+  leadId         String?    @map("lead_id") @db.Char(36)
+  dealId         String?    @map("deal_id") @db.Char(36)
+
+  // Valores fortemente tipados para performance em Query/Sort
+  valueText    String?   @map("value_text") @db.Text
+  valueNumber  Decimal?  @map("value_number") @db.Decimal(18, 4)
+  valueBoolean Boolean?  @map("value_boolean")
+  valueDate    DateTime? @map("value_date")
+  valueJson    Json?     @map("value_json")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade, map: "cfv_tenant_id_fk_2")
+  customField CustomField @relation(fields: [customFieldId], references: [id], onDelete: Cascade, map: "cfv_cf_id_fk_2")
+
+  contact      Contact?      @relation(fields: [contactId], references: [id], onDelete: Cascade, map: "cfv_contact_id_fk_2")
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade, map: "cfv_org_id_fk_2")
+  lead         Lead?         @relation(fields: [leadId], references: [id], onDelete: Cascade, map: "cfv_lead_id_fk_2")
+  deal         Deal?         @relation(fields: [dealId], references: [id], onDelete: Cascade, map: "cfv_deal_id_fk_2")
+
+  // Constraint lógica: um CustomField só pode ter um valor por Entidade.
+  @@unique([customFieldId, contactId])
+  @@unique([customFieldId, organizationId])
+  @@unique([customFieldId, leadId])
+  @@unique([customFieldId, dealId])
+  @@index([tenantId, customFieldId])
+  @@index([tenantId, contactId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, leadId])
+  @@index([tenantId, dealId])
+  @@map("custom_field_values")
+}
+
+// -------------------------------------------------------------
+// CRM DOMAIN: Tags System
+// -------------------------------------------------------------
+
+model Tag {
+  id          String  @id @default(uuid()) @db.Char(36)
+  tenantId    String  @map("tenant_id") @db.Char(36)
+  name        String  @db.VarChar(50)
+  slug        String  @db.VarChar(50)
+  description String? @db.VarChar(255)
+  color       String  @default("#E2E8F0") @db.VarChar(7)
+  isActive    Boolean @default(true) @map("is_active")
+  createdById String? @map("created_by_id") @db.Char(36)
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  tenant      Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdBy   User?           @relation("TagCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  assignments TagAssignment[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, name])
+  @@map("tags")
+}
+
+model TagAssignment {
+  id         String     @id @default(uuid()) @db.Char(36)
+  tenantId   String     @map("tenant_id") @db.Char(36)
+  tagId      String     @map("tag_id") @db.Char(36)
+  entityType EntityType @map("entity_type")
+
+  // Múltiplas FKs para Integridade Forte e Deleção em Cascata
+  contactId      String? @map("contact_id") @db.Char(36)
+  organizationId String? @map("organization_id") @db.Char(36)
+  leadId         String? @map("lead_id") @db.Char(36)
+  dealId         String? @map("deal_id") @db.Char(36)
+
+  assignedById String?  @map("assigned_by_id") @db.Char(36)
+  assignedAt   DateTime @default(now()) @map("assigned_at")
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade, map: "ta_tenant_id_fk_2")
+  tag          Tag           @relation(fields: [tagId], references: [id], onDelete: Cascade, map: "ta_tag_id_fk_2")
+  assignedBy   User?         @relation("TagAssigner", fields: [assignedById], references: [id], onDelete: SetNull, map: "ta_assigned_by_fk_2")
+  contact      Contact?      @relation(fields: [contactId], references: [id], onDelete: Cascade, map: "ta_contact_id_fk_2")
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade, map: "ta_org_id_fk_2")
+  lead         Lead?         @relation(fields: [leadId], references: [id], onDelete: Cascade, map: "ta_lead_id_fk_2")
+  deal         Deal?         @relation(fields: [dealId], references: [id], onDelete: Cascade, map: "ta_deal_id_fk_2")
+
+  @@unique([tagId, contactId])
+  @@unique([tagId, organizationId])
+  @@unique([tagId, leadId])
+  @@unique([tagId, dealId])
+  @@index([tenantId, entityType])
+  @@index([tenantId, contactId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, leadId])
+  @@map("tag_assignments")
+}
+
+// -------------------------------------------------------------
+// CRM DOMAIN: Notes System
+// -------------------------------------------------------------
+
+enum NoteVisibility {
+  PRIVATE
+  TEAM
+  TENANT
+}
+
+model Note {
+  id       String @id @default(uuid()) @db.Char(36)
+  tenantId String @map("tenant_id") @db.Char(36)
+
+  // Relacionamento Polimórfico Simulado (Integridade Forte)
+  entityType     EntityType @map("entity_type")
+  contactId      String?    @map("contact_id") @db.Char(36)
+  organizationId String?    @map("organization_id") @db.Char(36)
+  leadId         String?    @map("lead_id") @db.Char(36)
+  dealId         String?    @map("deal_id") @db.Char(36)
+
+  authorUserId String @map("author_user_id") @db.Char(36)
+
+  title      String?        @db.VarChar(255)
+  content    String         @db.Text
+  visibility NoteVisibility @default(TENANT)
+  isPinned   Boolean        @default(false) @map("is_pinned")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade, map: "notes_tenant_id_fk_2")
+  author       User          @relation("NoteAuthor", fields: [authorUserId], references: [id], onDelete: Cascade, map: "notes_author_id_fk_2")
+  contact      Contact?      @relation(fields: [contactId], references: [id], onDelete: Cascade, map: "notes_contact_id_fk_2")
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade, map: "notes_org_id_fk_2")
+  lead         Lead?         @relation(fields: [leadId], references: [id], onDelete: Cascade, map: "notes_lead_id_fk_2")
+  deal         Deal?         @relation(fields: [dealId], references: [id], onDelete: Cascade, map: "notes_deal_id_fk_2")
+
+  @@index([tenantId, entityType])
+  @@index([tenantId, contactId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, leadId])
+  @@index([tenantId, isPinned])
+  @@map("notes")
+}
+
+// -------------------------------------------------------------
+// CRM DOMAIN: Unified Timeline
+// -------------------------------------------------------------
+
+enum TimelineEventType {
+  // Contacts
+  CONTACT_CREATED
+  CONTACT_UPDATED
+  CONTACT_ARCHIVED
+
+  // Organizations
+  ORGANIZATION_CREATED
+  ORGANIZATION_UPDATED
+
+  // Tags
+  TAG_ASSIGNED
+  TAG_REMOVED
+
+  // Notes
+  NOTE_CREATED
+  NOTE_UPDATED
+  NOTE_PINNED
+  NOTE_UNPINNED
+  NOTE_DELETED
+
+  // Leads
+  LEAD_CREATED
+  LEAD_UPDATED
+  LEAD_CONVERTED
+  LEAD_LOST
+  LEAD_OWNER_CHANGED
+  LEAD_ARCHIVED
+
+  // Pipelines
+  PIPELINE_CREATED
+  PIPELINE_UPDATED
+  PIPELINE_ARCHIVED
+  PIPELINE_ACTIVATED
+  PIPELINE_DEACTIVATED
+  PIPELINE_DEFAULT_CHANGED
+
+  // Futuro
+  DEAL_CREATED
+  DEAL_UPDATED
+  DEAL_MOVED
+  DEAL_WON
+  DEAL_LOST
+  DEAL_ARCHIVED
+  DEAL_OWNER_CHANGED
+  MESSAGE_SENT
+  MESSAGE_RECEIVED
+
+  // Attachments
+  ATTACHMENT_UPLOADED
+  ATTACHMENT_DELETED
+}
+
+model TimelineEvent {
+  id       String @id @default(uuid()) @db.Char(36)
+  tenantId String @map("tenant_id") @db.Char(36)
+
+  eventType  TimelineEventType @map("event_type")
+  entityType EntityType        @map("entity_type")
+  entityId   String            @map("entity_id") @db.Char(36)
+
+  actorUserId  String? @map("actor_user_id") @db.Char(36)
+  targetUserId String? @map("target_user_id") @db.Char(36)
+
+  title       String  @db.VarChar(255)
+  description String? @db.Text
+
+  metadata Json?
+
+  occurredAt DateTime @default(now()) @map("occurred_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  actor  User?  @relation("EventActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  target User?  @relation("EventTarget", fields: [targetUserId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, entityType, entityId])
+  @@index([tenantId, occurredAt(sort: Desc)])
+  @@index([tenantId, actorUserId])
+  @@map("timeline_events")
+}
+
+// -------------------------------------------------------------
+// CRM DOMAIN: Leads (Sales)
+// -------------------------------------------------------------
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  UNQUALIFIED
+  CONVERTED
+  LOST
+  ARCHIVED
+}
+
+enum LeadTemperature {
+  COLD
+  WARM
+  HOT
+}
+
+enum LeadSource {
+  MANUAL
+  TELEGRAM
+  WHATSAPP
+  WEBSITE
+  LANDING_PAGE
+  API
+  IMPORT
+  REFERRAL
+}
+
+model Lead {
+  id             String  @id @default(uuid()) @db.Char(36)
+  tenantId       String  @map("tenant_id") @db.Char(36)
+  contactId      String  @map("contact_id") @db.Char(36)
+  organizationId String? @map("organization_id") @db.Char(36)
+  ownerUserId    String  @map("owner_user_id") @db.Char(36)
+
+  title       String  @db.VarChar(255)
+  description String? @db.Text
+
+  status      LeadStatus      @default(NEW)
+  source      LeadSource      @default(MANUAL)
+  temperature LeadTemperature @default(COLD)
+  score       Int             @default(0) // 0-100
+
+  estimatedValue    Decimal?  @map("estimated_value") @db.Decimal(15, 2)
+  expectedCloseDate DateTime? @map("expected_close_date")
+
+  lostReason String? @map("lost_reason") @db.VarChar(500)
+
+  firstContactAt    DateTime? @map("first_contact_at")
+  lastInteractionAt DateTime? @map("last_interaction_at")
+  convertedAt       DateTime? @map("converted_at")
+  lostAt            DateTime? @map("lost_at")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  // Relacionamentos
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], map: "leads_tenant_id_fk")
+  contact      Contact       @relation(fields: [contactId], references: [id], map: "leads_contact_id_fk")
+  organization Organization? @relation(fields: [organizationId], references: [id], map: "leads_organization_id_fk")
+  owner        User          @relation("LeadOwner", fields: [ownerUserId], references: [id], map: "leads_owner_user_id_fk")
+
+  customFields   CustomFieldValue[]
+  tags           TagAssignment[]
+  notes          Note[]
+  deals          Deal[]             @relation("LeadToDeal")
+  activities     Activity[]         @relation("LeadActivities")
+  calendarEvents CalendarEvent[]    @relation("LeadCalendarEvents")
+  attachments    Attachment[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, ownerUserId])
+  @@index([tenantId, contactId])
+  @@index([tenantId, organizationId])
+  @@map("leads")
+}
+
+// -------------------------------------------------------------
+// CRM DOMAIN: Pipelines (Sales Process)
+// -------------------------------------------------------------
+
+model Pipeline {
+  id           String  @id @default(uuid()) @db.Char(36)
+  tenantId     String  @map("tenant_id") @db.Char(36)
+  name         String  @db.VarChar(100)
+  description  String? @db.Text
+  isDefault    Boolean @default(false) @map("is_default")
+  isActive     Boolean @default(true) @map("is_active")
+  displayOrder Int     @default(0) @map("display_order")
+  createdById  String  @map("created_by_id") @db.Char(36)
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  tenant    Tenant @relation(fields: [tenantId], references: [id], map: "pipelines_tenant_id_fk")
+  createdBy User   @relation("PipelineCreator", fields: [createdById], references: [id], map: "pipelines_created_by_fk")
+
+  stages        PipelineStage[] @relation("PipelineStages")
+  deals         Deal[]
+  dealMovements DealMovement[]
+
+  @@index([tenantId, isDefault])
+  @@index([tenantId, isActive])
+  @@map("pipelines")
+}
+
+model PipelineStage {
+  id           String  @id @default(cuid()) @db.Char(36)
+  name         String  @db.VarChar(100)
+  description  String? @db.Text
+  displayOrder Int     @map("display_order")
+  color        String? @db.VarChar(7)
+  probability  Int     @default(0) // 0-100
+
+  isInitialStage Boolean @default(false) @map("is_initial_stage")
+  isFinalStage   Boolean @default(false) @map("is_final_stage")
+  isWonStage     Boolean @default(false) @map("is_won_stage")
+  isLostStage    Boolean @default(false) @map("is_lost_stage")
+  isActive       Boolean @default(true) @map("is_active")
+
+  tenantId    String @map("tenant_id") @db.Char(36)
+  pipelineId  String @map("pipeline_id") @db.Char(36)
+  createdById String @map("created_by_id") @db.Char(36)
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], map: "pipeline_stages_tenant_id_fk")
+  pipeline      Pipeline       @relation("PipelineStages", fields: [pipelineId], references: [id], onDelete: Cascade, map: "pipeline_stages_pipeline_id_fk")
+  createdBy     User           @relation("PipelineStageCreator", fields: [createdById], references: [id], map: "pipeline_stages_created_by_fk")
+  deals         Deal[]
+  movementsFrom DealMovement[] @relation("DealMovementFromStage")
+  movementsTo   DealMovement[] @relation("DealMovementToStage")
+
+  @@index([tenantId, pipelineId])
+  @@index([deletedAt])
+  @@map("pipeline_stages")
+}
+
+// -------------------------------------------------------------
+// CRM DOMAIN: Deals & Kanban
+// -------------------------------------------------------------
+
+enum DealStatus {
+  OPEN
+  WON
+  LOST
+  ARCHIVED
+}
+
+model Deal {
+  id       String @id @default(uuid()) @db.Char(36)
+  tenantId String @map("tenant_id") @db.Char(36)
+
+  pipelineId String @map("pipeline_id") @db.Char(36)
+  stageId    String @map("stage_id") @db.Char(36)
+
+  leadId         String? @map("lead_id") @db.Char(36)
+  contactId      String? @map("contact_id") @db.Char(36)
+  organizationId String? @map("organization_id") @db.Char(36)
+
+  ownerUserId String @map("owner_user_id") @db.Char(36)
+
+  title       String  @db.VarChar(255)
+  description String? @db.Text
+
+  status DealStatus @default(OPEN)
+
+  value       Decimal? @db.Decimal(15, 2)
+  currency    String   @default("BRL") @db.VarChar(3)
+  probability Int      @default(0) // 0-100
+
+  expectedCloseDate DateTime? @map("expected_close_date")
+
+  closedAt   DateTime? @map("closed_at")
+  wonAt      DateTime? @map("won_at")
+  lostAt     DateTime? @map("lost_at")
+  lostReason String?   @map("lost_reason") @db.VarChar(500)
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  // Relacionamentos
+  tenant   Tenant        @relation(fields: [tenantId], references: [id], map: "deals_tenant_id_fk")
+  pipeline Pipeline      @relation(fields: [pipelineId], references: [id], map: "deals_pipeline_id_fk")
+  stage    PipelineStage @relation(fields: [stageId], references: [id], map: "deals_stage_id_fk")
+
+  lead         Lead?         @relation("LeadToDeal", fields: [leadId], references: [id], map: "deals_lead_id_fk")
+  contact      Contact?      @relation(fields: [contactId], references: [id], map: "deals_contact_id_fk")
+  organization Organization? @relation(fields: [organizationId], references: [id], map: "deals_organization_id_fk")
+
+  owner User @relation("DealOwner", fields: [ownerUserId], references: [id], map: "deals_owner_user_id_fk")
+
+  movements DealMovement[]
+
+  customFields   CustomFieldValue[]
+  tags           TagAssignment[]
+  notes          Note[]
+  activities     Activity[]         @relation("DealActivities")
+  calendarEvents CalendarEvent[]    @relation("DealCalendarEvents")
+  attachments    Attachment[]
+
+  @@index([tenantId, pipelineId, stageId])
+  @@index([tenantId, status])
+  @@index([tenantId, ownerUserId])
+  @@index([tenantId, contactId])
+  @@index([tenantId, organizationId])
+  @@map("deals")
+}
+
+enum MovementSource {
+  USER
+  AUTOMATION
+  AI
+  SYSTEM
+  API
+}
+
+model DealMovement {
+  id       String @id @default(uuid()) @db.Char(36)
+  tenantId String @map("tenant_id") @db.Char(36)
+
+  dealId     String @map("deal_id") @db.Char(36)
+  pipelineId String @map("pipeline_id") @db.Char(36)
+
+  fromStageId String? @map("from_stage_id") @db.Char(36)
+  toStageId   String  @map("to_stage_id") @db.Char(36)
+
+  movedByUserId String?        @map("moved_by_user_id") @db.Char(36)
+  source        MovementSource @default(USER)
+
+  reason   String? @db.Text
+  metadata Json?
+
+  executedAt DateTime @default(now()) @map("executed_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  tenant      Tenant         @relation(fields: [tenantId], references: [id], map: "dm_tenant_id_fk")
+  deal        Deal           @relation(fields: [dealId], references: [id], onDelete: Cascade, map: "dm_deal_id_fk")
+  pipeline    Pipeline       @relation(fields: [pipelineId], references: [id], map: "dm_pipeline_id_fk")
+  fromStage   PipelineStage? @relation("DealMovementFromStage", fields: [fromStageId], references: [id], map: "dm_from_stage_id_fk")
+  toStage     PipelineStage  @relation("DealMovementToStage", fields: [toStageId], references: [id], map: "dm_to_stage_id_fk")
+  movedByUser User?          @relation(fields: [movedByUserId], references: [id], map: "dm_moved_by_user_id_fk")
+
+  @@index([tenantId, dealId])
+  @@index([tenantId, pipelineId])
+  @@index([tenantId, fromStageId])
+  @@index([tenantId, toStageId])
+  @@index([tenantId, movedByUserId])
+  @@map("deal_movements")
+}
+
+enum ActivityType {
+  CALL
+  MEETING
+  EMAIL
+  FOLLOW_UP
+  TASK
+  DEMO
+  PROPOSAL
+  CONTRACT
+  MESSAGE
+}
+
+enum ActivityStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELED
+  OVERDUE
+}
+
+enum ActivityPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model Activity {
+  id       String @id @default(uuid()) @db.Char(36)
+  tenantId String @map("tenant_id") @db.Char(36)
+
+  ownerUserId     String @map("owner_user_id") @db.Char(36)
+  createdByUserId String @map("created_by_user_id") @db.Char(36)
+
+  contactId      String? @map("contact_id") @db.Char(36)
+  organizationId String? @map("organization_id") @db.Char(36)
+  leadId         String? @map("lead_id") @db.Char(36)
+  dealId         String? @map("deal_id") @db.Char(36)
+
+  title       String  @db.VarChar(255)
+  description String? @db.Text
+
+  type     ActivityType
+  status   ActivityStatus   @default(PENDING)
+  priority ActivityPriority @default(MEDIUM)
+
+  dueDate     DateTime? @map("due_date")
+  startedAt   DateTime? @map("started_at")
+  completedAt DateTime? @map("completed_at")
+  canceledAt  DateTime? @map("canceled_at")
+
+  durationMinutes Int?    @map("duration_minutes")
+  location        String? @db.VarChar(255)
+
+  metadata Json?
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  tenant        Tenant @relation("TenantActivities", fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "activity_tenant_id_fk")
+  ownerUser     User   @relation("ActivityOwner", fields: [ownerUserId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "activity_owner_user_id_fk")
+  createdByUser User   @relation("ActivityCreator", fields: [createdByUserId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "activity_created_by_user_id_fk")
+
+  contact        Contact?        @relation("ContactActivities", fields: [contactId], references: [id], onDelete: SetNull, onUpdate: Cascade, map: "activity_contact_id_fk")
+  organization   Organization?   @relation("OrganizationActivities", fields: [organizationId], references: [id], onDelete: SetNull, onUpdate: Cascade, map: "activity_organization_id_fk")
+  lead           Lead?           @relation("LeadActivities", fields: [leadId], references: [id], onDelete: SetNull, onUpdate: Cascade, map: "activity_lead_id_fk")
+  deal           Deal?           @relation("DealActivities", fields: [dealId], references: [id], onDelete: SetNull, onUpdate: Cascade, map: "activity_deal_id_fk")
+  calendarEvents CalendarEvent[] @relation("ActivityCalendarEvents")
+
+  @@index([tenantId, ownerUserId, status, dueDate])
+  @@index([tenantId, dealId])
+  @@index([tenantId, leadId])
+  @@index([tenantId, contactId])
+  @@index([tenantId, organizationId])
+  @@map("activities")
+}
+
+enum CalendarEventType {
+  CALL
+  MEETING
+  FOLLOW_UP
+  TASK
+  DEMO
+  VISIT
+  INTERNAL_EVENT
+}
+
+enum CalendarEventStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELED
+  MISSED
+}
+
+model CalendarEvent {
+  id       String @id @default(uuid()) @db.Char(36)
+  tenantId String @map("tenant_id") @db.Char(36)
+
+  ownerUserId String  @map("owner_user_id") @db.Char(36)
+  activityId  String? @map("activity_id") @db.Char(36)
+
+  title       String              @db.VarChar(255)
+  description String?             @db.Text
+  eventType   CalendarEventType   @map("event_type")
+  status      CalendarEventStatus @default(SCHEDULED)
+
+  startAt  DateTime @map("start_at")
+  endAt    DateTime @map("end_at")
+  timezone String   @db.VarChar(50)
+
+  location   String? @db.VarChar(255)
+  meetingUrl String? @map("meeting_url") @db.VarChar(1000)
+
+  isAllDay       Boolean @default(false) @map("is_all_day")
+  isRecurring    Boolean @default(false) @map("is_recurring")
+  recurrenceRule String? @map("recurrence_rule") @db.VarChar(500)
+
+  contactId      String? @map("contact_id") @db.Char(36)
+  organizationId String? @map("organization_id") @db.Char(36)
+  leadId         String? @map("lead_id") @db.Char(36)
+  dealId         String? @map("deal_id") @db.Char(36)
+
+  metadata Json?
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  tenant    Tenant    @relation("TenantCalendarEvents", fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "cal_event_tenant_id_fk")
+  ownerUser User      @relation("CalendarEventOwner", fields: [ownerUserId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "cal_event_owner_user_id_fk")
+  activity  Activity? @relation("ActivityCalendarEvents", fields: [activityId], references: [id], onDelete: SetNull, onUpdate: Cascade, map: "cal_event_activity_id_fk")
+
+  contact      Contact?      @relation("ContactCalendarEvents", fields: [contactId], references: [id], onDelete: SetNull, onUpdate: Cascade, map: "cal_event_contact_id_fk")
+  organization Organization? @relation("OrganizationCalendarEvents", fields: [organizationId], references: [id], onDelete: SetNull, onUpdate: Cascade, map: "cal_event_organization_id_fk")
+  lead         Lead?         @relation("LeadCalendarEvents", fields: [leadId], references: [id], onDelete: SetNull, onUpdate: Cascade, map: "cal_event_lead_id_fk")
+  deal         Deal?         @relation("DealCalendarEvents", fields: [dealId], references: [id], onDelete: SetNull, onUpdate: Cascade, map: "cal_event_deal_id_fk")
+
+  @@index([tenantId, startAt, endAt])
+  @@index([tenantId, ownerUserId, startAt, endAt])
+  @@map("calendar_events")
+}
+// -------------------------------------------------------------
+// CRM DOMAIN: Attachments / Files
+// -------------------------------------------------------------
+
+model Attachment {
+  id           String     @id @default(uuid()) @db.Char(36)
+  tenantId     String     @map("tenant_id") @db.Char(36)
+  
+  // Polymorphic association (simulated)
+  entityType   EntityType @map("entity_type")
+  contactId    String?    @map("contact_id") @db.Char(36)
+  organizationId String?  @map("organization_id") @db.Char(36)
+  leadId       String?    @map("lead_id") @db.Char(36)
+  dealId       String?    @map("deal_id") @db.Char(36)
+  
+  uploadedById String     @map("uploaded_by_id") @db.Char(36)
+
+  filename     String     @db.VarChar(255)
+  originalName String     @map("original_name") @db.VarChar(255)
+  mimeType     String     @map("mime_type") @db.VarChar(100)
+  size         Int        // File size in bytes
+  url          String     @db.VarChar(500)
+
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  uploadedBy   User          @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+  contact      Contact?      @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  lead         Lead?         @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  deal         Deal?         @relation(fields: [dealId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, entityType])
+  @@index([tenantId, contactId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, leadId])
+  @@index([tenantId, dealId])
+  @@map("attachments")
+}
+
