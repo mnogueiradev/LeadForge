@@ -17,7 +17,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (isMounted) {
-      if (!token && !pathname.startsWith('/auth') && pathname !== '/login' && pathname !== '/signup' && pathname !== '/forgot-password') {
+      if (!token && pathname !== '/login' && pathname !== '/signup' && pathname !== '/forgot-password') {
         router.push('/login');
       }
     }
@@ -32,13 +32,13 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   }
 
   // If we are on an auth route and have a token, redirect to dashboard
-  if (token && (pathname.startsWith('/auth') || pathname === '/login' || pathname === '/signup')) {
+  if (token && (pathname === '/login' || pathname === '/signup' || pathname === '/forgot-password')) {
     router.push('/dashboard');
     return null;
   }
 
   // If no token and trying to access protected route, render nothing (will redirect)
-  if (!token && !pathname.startsWith('/auth') && pathname !== '/login' && pathname !== '/signup' && pathname !== '/forgot-password') {
+  if (!token && pathname !== '/login' && pathname !== '/signup' && pathname !== '/forgot-password') {
     return null;
   }
 
