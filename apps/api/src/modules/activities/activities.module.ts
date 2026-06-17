@@ -15,7 +15,7 @@ import { ListActivitiesUseCase } from './usecases/list-activities.usecase';
 @Module({
   controllers: [ActivitiesController],
   providers: [
-    { provide: PrismaClient, useFactory: () => new PrismaClient({ log: ['error', 'warn'] }) },
+    { provide: PrismaClient, useFactory: () => { if (!(globalThis as any).prisma) (globalThis as any).prisma = new PrismaClient({ log: ['error', 'warn'] }); return (globalThis as any).prisma; } },
     CreateActivityUseCase,
     UpdateActivityUseCase,
     DeleteActivityUseCase,

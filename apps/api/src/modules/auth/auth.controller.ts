@@ -17,6 +17,7 @@ import { SecurityLogSeverity } from '@prisma/client';
 import { Throttle } from '@nestjs/throttler';
 import { LoginDto } from './dtos/login.dto';
 import { ForgotPasswordDto } from './dtos/forgot-password.dto';
+import { RegisterDto } from './dtos/register.dto';
 import { RevokeSessionUseCase } from '../sessions/usecases/revoke-session.usecase';
 import { JwtPayload } from './interfaces/auth-payload.interface';
 
@@ -79,7 +80,15 @@ export class AuthController {
     });
 
     // We can also send access_token via cookie or payload. Usually payload is fine for access token if short-lived.
-    return { access_token: tokens.access_token };
+    return { 
+      access_token: tokens.access_token, 
+      user: {
+        id: user.id,
+        email: user.email,
+        name: `${user.firstName} ${user.lastName}`.trim()
+      },
+      tenantId: user.tenantId
+    };
   }
 
   @Post('logout')
@@ -145,7 +154,7 @@ export class AuthController {
   @Public()
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
-  async register(@Body() body: import('./dtos/register.dto').RegisterDto) {
+  async register(@Body() body: RegisterDto) {
     return await this.authService.register(body);
   }
 

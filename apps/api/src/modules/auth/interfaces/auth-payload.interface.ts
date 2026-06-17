@@ -20,6 +20,10 @@ export interface AuthenticatedUser {
   id: string;
   email: string;
   tenantId: string;
+  firstName: string;
+  lastName: string;
+  phone: string | null;
+  jobTitle: string | null;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;

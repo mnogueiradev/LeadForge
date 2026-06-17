@@ -22,7 +22,7 @@ import { v4 as uuidv4 } from 'uuid';
   controllers: [AttachmentsController],
   providers: [
     AttachmentsService,
-    { provide: PrismaClient, useFactory: () => new PrismaClient({ log: ['error', 'warn'] }) },
+    { provide: PrismaClient, useFactory: () => { if (!(globalThis as any).prisma) (globalThis as any).prisma = new PrismaClient({ log: ['error', 'warn'] }); return (globalThis as any).prisma; } },
   ],
   exports: [AttachmentsService],
 })

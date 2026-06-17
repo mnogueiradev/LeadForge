@@ -237,7 +237,7 @@ export class AuthService {
 
     // Check if user exists
     const existingUser = await this.prisma.user.findFirst({
-      where: { email },
+      where: { email, deletedAt: null },
     });
 
     if (existingUser) {
@@ -251,20 +251,25 @@ export class AuthService {
     // Use a transaction to ensure both are created together
     const result = await this.prisma.$transaction(async (tx) => {
       // Create Tenant
-      const slug = organizationName.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + uuidv4().split('-')[0];
+      const safeOrgName = organizationName || 'My Organization';
+      const slug = safeOrgName.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + uuidv4().split('-')[0];
       const tenant = await tx.tenant.create({
         data: {
-          name: organizationName,
+          name: safeOrgName,
           slug,
         },
       });
 
       // Create User
+      const nameParts = name ? name.split(' ') : ['User'];
+      const firstName = nameParts[0];
+      const lastName = nameParts.slice(1).join(' ') || '';
+
       const user = await tx.user.create({
         data: {
           email,
-          firstName: name.split(' ')[0],
-          lastName: name.split(' ').slice(1).join(' '),
+          firstName,
+          lastName,
           passwordHash: hashedPassword,
           tenantId: tenant.id,
           isActive: true,

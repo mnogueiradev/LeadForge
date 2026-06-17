@@ -9,7 +9,7 @@ import { ListStageMovementsUseCase } from './usecases/list-stage-movements.useca
 @Module({
   controllers: [PipelineMovementsController],
   providers: [
-    { provide: PrismaClient, useFactory: () => new PrismaClient({ log: ['error', 'warn'] }) },
+    { provide: PrismaClient, useFactory: () => { if (!(globalThis as any).prisma) (globalThis as any).prisma = new PrismaClient({ log: ['error', 'warn'] }); return (globalThis as any).prisma; } },
     ValidateStageTransitionUseCase,
     MoveDealStageUseCase,
     GetMovementHistoryUseCase,

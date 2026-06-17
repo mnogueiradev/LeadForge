@@ -26,7 +26,7 @@ import {
 @Module({
   controllers: [TagsController, TagAssignmentsController],
   providers: [
-    { provide: PrismaClient, useFactory: () => new PrismaClient({ log: ['error', 'warn'] }) },
+    { provide: PrismaClient, useFactory: () => { if (!(globalThis as any).prisma) (globalThis as any).prisma = new PrismaClient({ log: ['error', 'warn'] }); return (globalThis as any).prisma; } },
     { provide: ITagRepository, useClass: PrismaTagRepository },
     { provide: ITagAssignmentRepository, useClass: PrismaTagAssignmentRepository },
     CreateTagUseCase,
