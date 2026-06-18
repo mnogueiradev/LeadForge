@@ -1,45 +1,37 @@
 'use client';
 
-import { useAuthStore } from '@/store/auth.store';
-import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { useRouter, usePathname } from 'next/navigation';
+import { useAuthStore } from '@/store/auth.store'; // ajuste o import se necessário
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { token } = useAuthStore();
   const router = useRouter();
   const pathname = usePathname();
-  const [isMounted, setIsMounted] = useState(false);
+  const token = useAuthStore((state) => state.token);
+  
+  // Controle para saber se o Zustand já carregou o localStorage
+  const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
-    setIsMounted(true);
+    setIsHydrated(true);
   }, []);
 
   useEffect(() => {
-    if (isMounted) {
-      if (!token && pathname !== '/login' && pathname !== '/signup' && pathname !== '/forgot-password') {
-        router.push('/login');
-      }
+    // Se ainda não hidratou o estado do localStorage, não faça NADA.
+    if (!isHydrated) return; 
+
+    const isAuthRoute = pathname === '/login' || pathname === '/signup' || pathname === '/forgot-password';
+
+    if (!token && !isAuthRoute) {
+      router.push('/login');
+    } else if (token && isAuthRoute) {
+      router.push('/dashboard');
     }
-  }, [token, pathname, router, isMounted]);
+  }, [token, isHydrated, pathname, router]);
 
-  if (!isMounted) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  // If we are on an auth route and have a token, redirect to dashboard
-  if (token && (pathname === '/login' || pathname === '/signup' || pathname === '/forgot-password')) {
-    router.push('/dashboard');
-    return null;
-  }
-
-  // If no token and trying to access protected route, render nothing (will redirect)
-  if (!token && pathname !== '/login' && pathname !== '/signup' && pathname !== '/forgot-password') {
-    return null;
+  // Evita a tela "piscar" mostrando o painel antes de redirecionar
+  if (!isHydrated) {
+    return null; // Opcional: Coloque um <LoadingSpinner /> aqui
   }
 
   return <>{children}</>;
