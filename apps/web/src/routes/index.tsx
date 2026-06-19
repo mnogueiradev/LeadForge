@@ -1,6 +1,11 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { AuthLayout } from '../layouts/AuthLayout';
 import { DashboardLayout } from '../layouts/DashboardLayout';
+import { AuthGuard } from '../components/auth-guard';
+import { GuestGuard } from '../components/guest-guard';
+
+import { LoginPage } from '../features/auth/pages/LoginPage';
+import { RegisterPage } from '../features/auth/pages/RegisterPage';
 
 import { DashboardOverviewPage } from '../features/dashboard/pages/DashboardOverviewPage';
 import { OrganizationsListPage } from '../features/organizations/pages/OrganizationsListPage';
@@ -18,25 +23,36 @@ export const router = createBrowserRouter([
     element: <Navigate to="/dashboard" replace />,
   },
   {
-    path: '/login',
-    element: <AuthLayout />,
+    element: <GuestGuard />,
     children: [
-      { path: '', element: <div>Login Page (to be implemented)</div> },
+      {
+        path: '/',
+        element: <AuthLayout />,
+        children: [
+          { path: 'login', element: <LoginPage /> },
+          { path: 'register', element: <RegisterPage /> },
+        ],
+      },
     ],
   },
   {
-    path: '/',
-    element: <DashboardLayout />,
+    element: <AuthGuard />,
     children: [
-      { path: 'dashboard', element: <DashboardOverviewPage /> },
-      { path: 'organizations', element: <OrganizationsListPage /> },
-      { path: 'contacts', element: <ContactsListPage /> },
-      { path: 'leads', element: <LeadsListPage /> },
-      { path: 'pipelines', element: <PipelinesPage /> },
-      { path: 'deals', element: <DealsBoardPage /> },
-      { path: 'activities', element: <ActivitiesPage /> },
-      { path: 'calendar', element: <CalendarPage /> },
-      { path: 'settings', element: <SettingsPage /> },
+      {
+        path: '/',
+        element: <DashboardLayout />,
+        children: [
+          { path: 'dashboard', element: <DashboardOverviewPage /> },
+          { path: 'organizations', element: <OrganizationsListPage /> },
+          { path: 'contacts', element: <ContactsListPage /> },
+          { path: 'leads', element: <LeadsListPage /> },
+          { path: 'pipelines', element: <PipelinesPage /> },
+          { path: 'deals', element: <DealsBoardPage /> },
+          { path: 'activities', element: <ActivitiesPage /> },
+          { path: 'calendar', element: <CalendarPage /> },
+          { path: 'settings', element: <SettingsPage /> },
+        ],
+      },
     ],
   },
 ]);

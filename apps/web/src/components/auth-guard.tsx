@@ -1,38 +1,23 @@
-'use client';
+import React from 'react';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { useAuth } from '@/providers/auth-provider';
+import { LoadingState } from '@/components/ui/loading-state';
 
-import { useEffect, useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import { useAuthStore } from '@/store/auth.store'; // ajuste o import se necessário
+export function AuthGuard() {
+  const { isAuthenticated, isLoading } = useAuth();
+  const location = useLocation();
 
-export function AuthGuard({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const token = useAuthStore((state) => state.token);
-  
-  // Controle para saber se o Zustand já carregou o localStorage
-  const [isHydrated, setIsHydrated] = useState(false);
-
-  useEffect(() => {
-    setIsHydrated(true);
-  }, []);
-
-  useEffect(() => {
-    // Se ainda não hidratou o estado do localStorage, não faça NADA.
-    if (!isHydrated) return; 
-
-    const isAuthRoute = pathname === '/login' || pathname === '/signup' || pathname === '/forgot-password';
-
-    if (!token && !isAuthRoute) {
-      router.push('/login');
-    } else if (token && isAuthRoute) {
-      router.push('/dashboard');
-    }
-  }, [token, isHydrated, pathname, router]);
-
-  // Evita a tela "piscar" mostrando o painel antes de redirecionar
-  if (!isHydrated) {
-    return null; // Opcional: Coloque um <LoadingSpinner /> aqui
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <LoadingState className="w-12 h-12" />
+      </div>
+    );
   }
 
-  return <>{children}</>;
+  if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  return <Outlet />;
 }

@@ -14,7 +14,7 @@ import { ChangeContactOwnerUseCase } from './usecases/change-owner.usecase';
 @Module({
   controllers: [ContactsController],
   providers: [
-    { provide: PrismaClient, useFactory: () => { if (!(globalThis as any).prisma) (globalThis as any).prisma = new PrismaClient({ log: ['error', 'warn'] }); return (globalThis as any).prisma; } },
+    { provide: PrismaClient, useFactory: async () => { const { prisma } = await import('../../lib/prisma'); return prisma; } },
     { provide: IContactRepository, useClass: PrismaContactRepository },
     CreateContactUseCase,
     UpdateContactUseCase,

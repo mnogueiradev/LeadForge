@@ -1,11 +1,13 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
-// Assumindo que os estilos globais existem
-// import './assets/globals.css';
+import { ThemeProvider } from '@/providers/theme-provider';
+import './index.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <ThemeProvider defaultTheme="dark" storageKey="leadforge-theme">
+      <App />
+    </ThemeProvider>
   </StrictMode>
 );

@@ -15,7 +15,7 @@ import { GetCalendarAgendaUseCase } from './usecases/get-calendar-agenda.usecase
 @Module({
   controllers: [CalendarController],
   providers: [
-    { provide: PrismaClient, useFactory: () => { if (!(globalThis as any).prisma) (globalThis as any).prisma = new PrismaClient({ log: ['error', 'warn'] }); return (globalThis as any).prisma; } },
+    { provide: PrismaClient, useFactory: async () => { const { prisma } = await import('../../lib/prisma'); return prisma; } },
     CreateCalendarEventUseCase,
     UpdateCalendarEventUseCase,
     DeleteCalendarEventUseCase,

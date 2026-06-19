@@ -1,5 +1,3 @@
-'use client';
-
 import * as React from 'react';
 import {
   Briefcase,
@@ -10,13 +8,15 @@ import {
   Phone,
   Settings,
   ShieldCheck,
+  Target,
+  KanbanSquare,
+  Activity
 } from 'lucide-react';
-import Link from 'next/link';
+import { NavLink } from 'react-router-dom';
 
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -25,64 +25,32 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
+  useSidebar,
 } from '@/components/ui/sidebar';
 
 const navItems = [
-  {
-    title: 'Dashboard',
-    url: '/dashboard',
-    icon: LayoutDashboard,
-  },
-  {
-    title: 'Leads',
-    url: '/leads',
-    icon: Users,
-  },
-  {
-    title: 'Negócios (Deals)',
-    url: '/deals',
-    icon: Briefcase,
-  },
-  {
-    title: 'Contatos',
-    url: '/contacts',
-    icon: Phone,
-  },
-  {
-    title: 'Empresas',
-    url: '/organizations',
-    icon: Building2,
-  },
-  {
-    title: 'Calendário',
-    url: '/calendar',
-    icon: Calendar,
-  },
+  { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
+  { title: 'Empresas', url: '/organizations', icon: Building2 },
+  { title: 'Contatos', url: '/contacts', icon: Phone },
+  { title: 'Leads', url: '/leads', icon: Target },
+  { title: 'Pipelines', url: '/pipelines', icon: KanbanSquare },
+  { title: 'Negócios', url: '/deals', icon: Briefcase },
+  { title: 'Atividades', url: '/activities', icon: Activity },
+  { title: 'Calendário', url: '/calendar', icon: Calendar },
 ];
 
 const adminItems = [
-  {
-    title: 'Usuários',
-    url: '/users',
-    icon: Users,
-  },
-  {
-    title: 'Papéis & Permissões',
-    url: '/roles',
-    icon: ShieldCheck,
-  },
-  {
-    title: 'Configurações',
-    url: '/settings',
-    icon: Settings,
-  },
+  { title: 'Configurações', url: '/settings', icon: Settings },
 ];
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { state } = useSidebar();
+
   return (
-    <Sidebar {...props}>
-      <SidebarHeader className="flex h-16 items-center justify-center border-b px-6">
-        <h2 className="text-xl font-bold tracking-tight">LeadForge</h2>
+    <Sidebar collapsible="icon" {...props}>
+      <SidebarHeader className="flex h-16 items-center border-b px-6">
+        {state === 'expanded' && <h2 className="text-xl text-emerald-600 font-bold tracking-tight">LeadForge</h2>}
+        {state === 'collapsed' && <h2 className="text-xl text-emerald-600 font-bold tracking-tight">LF</h2>}
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
@@ -91,11 +59,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarMenu>
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <Link href={item.url}>
+                  <SidebarMenuButton asChild tooltip={item.title}>
+                    <NavLink
+                      to={item.url}
+                      className={({ isActive }) =>
+                        isActive ? 'bg-emerald-500/10 text-emerald-600 font-medium' : ''
+                      }
+                    >
                       <item.icon />
                       <span>{item.title}</span>
-                    </Link>
+                    </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -109,11 +82,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarMenu>
               {adminItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <Link href={item.url}>
+                  <SidebarMenuButton asChild tooltip={item.title}>
+                    <NavLink
+                      to={item.url}
+                      className={({ isActive }) =>
+                        isActive ? 'bg-emerald-500/10 text-emerald-600 font-medium' : ''
+                      }
+                    >
                       <item.icon />
                       <span>{item.title}</span>
-                    </Link>
+                    </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
