@@ -23,7 +23,17 @@ export class GetActivityUseCase {
         },
         organization: { select: { id: true, name: true } },
         lead: { select: { id: true, title: true } },
-        deal: { select: { id: true, title: true, value: true } },
+        deal: { 
+          select: { 
+            id: true, 
+            title: true, 
+            value: true,
+            probability: true,
+            updatedAt: true,
+            stage: { select: { id: true, name: true, probability: true } },
+            pipeline: { select: { id: true, name: true } }
+          } 
+        },
       },
     });
 

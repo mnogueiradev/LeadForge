@@ -957,6 +957,8 @@ model PipelineStage {
   isLostStage    Boolean @default(false) @map("is_lost_stage")
   isActive       Boolean @default(true) @map("is_active")
 
+  metadata       Json?
+
   tenantId    String @map("tenant_id") @db.Char(36)
   pipelineId  String @map("pipeline_id") @db.Char(36)
   createdById String @map("created_by_id") @db.Char(36)

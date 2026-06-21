@@ -70,7 +70,17 @@ export class ListActivitiesUseCase {
           ownerUser: { select: { id: true, firstName: true, lastName: true } },
           contact: { select: { id: true, firstName: true, lastName: true } },
           organization: { select: { id: true, name: true } },
-          deal: { select: { id: true, title: true } },
+          deal: { 
+            select: { 
+              id: true, 
+              title: true,
+              value: true,
+              probability: true,
+              updatedAt: true,
+              stage: { select: { id: true, name: true, probability: true } },
+              pipeline: { select: { id: true, name: true } }
+            } 
+          },
         },
       }),
       this.prisma.activity.count({ where }),

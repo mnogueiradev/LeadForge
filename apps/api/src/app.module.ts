@@ -34,8 +34,10 @@ import { TimelineModule } from './modules/timeline/timeline.module';
 import { CalendarModule } from './modules/calendar/calendar.module';
 import { AttachmentsModule } from './modules/attachments/attachments.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { AutomationsModule } from './modules/automations/automations.module';
 import { ClsModule } from 'nestjs-cls';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
 import { v4 as uuidv4 } from 'uuid';
@@ -68,6 +70,7 @@ import { v4 as uuidv4 } from 'uuid';
       wildcard: true,
       delimiter: '.',
     }),
+    ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
       validate: validateEnv,
@@ -122,6 +125,7 @@ import { v4 as uuidv4 } from 'uuid';
     CalendarModule,
     AttachmentsModule,
     AnalyticsModule,
+    AutomationsModule,
   ],
   controllers: [AppController],
   providers: [
