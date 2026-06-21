@@ -45,7 +45,7 @@ export class LeadsController {
   ) {}
 
   @Post()
-  @RequirePermissions('leads:write')
+  @RequirePermissions('leads.create')
   async create(
     @Req() req: Request & { user: JwtPayload },
     @Body() dto: CreateLeadDto,
@@ -54,7 +54,7 @@ export class LeadsController {
   }
 
   @Get()
-  @RequirePermissions('leads:read')
+  @RequirePermissions('leads.read')
   async list(
     @Req() req: Request & { user: JwtPayload },
     @Query() query: ListLeadsDto,
@@ -63,7 +63,7 @@ export class LeadsController {
   }
 
   @Get(':id')
-  @RequirePermissions('leads:read')
+  @RequirePermissions('leads.read')
   async get(
     @Req() req: Request & { user: JwtPayload },
     @Param('id') id: string,
@@ -72,7 +72,7 @@ export class LeadsController {
   }
 
   @Patch(':id')
-  @RequirePermissions('leads:write')
+  @RequirePermissions('leads.update')
   async update(
     @Req() req: Request & { user: JwtPayload },
     @Param('id') id: string,
@@ -87,7 +87,7 @@ export class LeadsController {
   }
 
   @Post(':id/convert')
-  @RequirePermissions('leads:write')
+  @RequirePermissions('leads.update')
   async convert(
     @Req() req: Request & { user: JwtPayload },
     @Param('id') id: string,
@@ -96,7 +96,7 @@ export class LeadsController {
   }
 
   @Post(':id/lose')
-  @RequirePermissions('leads:write')
+  @RequirePermissions('leads.update')
   async lose(
     @Req() req: Request & { user: JwtPayload },
     @Param('id') id: string,
@@ -112,7 +112,7 @@ export class LeadsController {
 
   @Delete(':id/archive')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @RequirePermissions('leads:delete')
+  @RequirePermissions('leads.delete')
   async archive(
     @Req() req: Request & { user: JwtPayload },
     @Param('id') id: string,
@@ -122,7 +122,7 @@ export class LeadsController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @RequirePermissions('leads:delete')
+  @RequirePermissions('leads.delete')
   async remove(
     @Req() req: Request & { user: JwtPayload },
     @Param('id') id: string,

@@ -7,13 +7,14 @@ export interface PaginatedLeads {
   meta: {
     total: number;
     limit: number;
-    offset: number;
+    page: number;
+    totalPages: number;
   };
 }
 
 export interface ListLeadsParams {
   limit?: number;
-  offset?: number;
+  page?: number;
   status?: string;
   temperature?: string;
   source?: string;
@@ -32,4 +33,6 @@ export interface ILeadRepository {
   ): Promise<Lead>;
   findById(id: string, tenantId: string): Promise<Lead | null>;
   findAll(tenantId: string, params: ListLeadsParams): Promise<PaginatedLeads>;
+  archive(id: string, tenantId: string): Promise<Lead>;
+  delete(id: string, tenantId: string): Promise<void>;
 }

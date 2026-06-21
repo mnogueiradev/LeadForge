@@ -10,11 +10,14 @@ export interface CreateOrganizationData {
   legalName?: string;
   document?: string;
   website?: string;
+  email?: string;
+  phone?: string;
   industry?: string;
   companySize?: CompanySize;
   description?: string;
   status?: OrganizationStatus;
   ownerUserId?: string;
+  address?: any;
 }
 
 @Injectable()
@@ -61,13 +64,26 @@ export class CreateOrganizationUseCase {
       }
     }
 
+    const { address, ...restData } = data;
+
     const orgToCreate = {
-      ...data,
+      ...restData,
       document: formattedDocument,
-      ownerUserId: data.ownerUserId || userId, // Define criador como dono padrão
+      ownerUserId: restData.ownerUserId || userId, // Define criador como dono padrão
     };
 
-    const organization = await this.repository.create(tenantId, orgToCreate);
+    const addresses = address ? [{
+      street: address.street,
+      number: address.number,
+      complement: address.complement,
+      neighborhood: address.district,
+      city: address.city,
+      state: address.state,
+      postalCode: address.zipCode,
+      country: address.country,
+    }] : undefined;
+
+    const organization = await this.repository.create(tenantId, orgToCreate, addresses);
 
     // Auditoria & Timeline
     this.eventEmitter.emit('audit.log.created', {

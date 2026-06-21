@@ -5,8 +5,49 @@ import {
   IsUrl,
   MaxLength,
   IsUUID,
+  ValidateNested,
+  IsEmail,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { OrganizationStatus, CompanySize } from '@prisma/client';
+
+export class OrganizationAddressDto {
+  @IsString()
+  @MaxLength(255)
+  street: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  number?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  complement?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  district?: string;
+
+  @IsString()
+  @MaxLength(100)
+  city: string;
+
+  @IsString()
+  @MaxLength(50)
+  state: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  zipCode?: string;
+
+  @IsString()
+  @MaxLength(50)
+  country: string;
+}
 
 export class CreateOrganizationDto {
   @IsString()
@@ -29,6 +70,16 @@ export class CreateOrganizationDto {
   website?: string;
 
   @IsOptional()
+  @IsEmail()
+  @MaxLength(255)
+  email?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  phone?: string;
+
+  @IsOptional()
   @IsString()
   @MaxLength(100)
   industry?: string;
@@ -48,6 +99,11 @@ export class CreateOrganizationDto {
   @IsOptional()
   @IsUUID()
   ownerUserId?: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => OrganizationAddressDto)
+  address?: OrganizationAddressDto;
 }
 
 export class UpdateOrganizationDto {
@@ -72,6 +128,16 @@ export class UpdateOrganizationDto {
   website?: string;
 
   @IsOptional()
+  @IsEmail()
+  @MaxLength(255)
+  email?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  phone?: string;
+
+  @IsOptional()
   @IsString()
   @MaxLength(100)
   industry?: string;
@@ -87,6 +153,11 @@ export class UpdateOrganizationDto {
   @IsOptional()
   @IsEnum(OrganizationStatus)
   status?: OrganizationStatus;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => OrganizationAddressDto)
+  address?: OrganizationAddressDto;
 }
 
 export class ChangeOwnerDto {

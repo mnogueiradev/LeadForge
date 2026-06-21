@@ -13,10 +13,13 @@ export interface UpdateOrganizationData {
   legalName?: string;
   document?: string;
   website?: string;
+  email?: string;
+  phone?: string;
   industry?: string;
   companySize?: CompanySize;
   description?: string;
   status?: OrganizationStatus;
+  address?: any;
 }
 
 @Injectable()
@@ -42,7 +45,9 @@ export class UpdateOrganizationUseCase {
       existing.status === 'ARCHIVED' &&
       data.status !== 'ACTIVE' &&
       data.status !== 'PROSPECT' &&
-      data.status !== 'CUSTOMER'
+      data.status !== 'CUSTOMER' &&
+      data.status !== 'PARTNER' &&
+      data.status !== 'SUPPLIER'
     ) {
       throw new BadRequestException(
         'Não é possível editar uma organização arquivada. Restaure-a primeiro.',
@@ -76,10 +81,30 @@ export class UpdateOrganizationUseCase {
       }
     }
 
-    const updated = await this.repository.update(tenantId, id, {
-      ...data,
+    const { address, ...restData } = data;
+
+    const updatePayload: any = {
+      ...restData,
       ...(formattedDocument && { document: formattedDocument }),
-    });
+    };
+
+    if (address) {
+      updatePayload.addresses = {
+        deleteMany: {},
+        create: [{
+          street: address.street,
+          number: address.number,
+          complement: address.complement,
+          neighborhood: address.district,
+          city: address.city,
+          state: address.state,
+          postalCode: address.zipCode,
+          country: address.country,
+        }],
+      };
+    }
+
+    const updated = await this.repository.update(tenantId, id, updatePayload);
 
     // Auditoria & Timeline
     this.eventEmitter.emit('audit.log.updated', {

@@ -160,9 +160,8 @@ export class PrismaContactRepository implements IContactRepository {
   }
 
   async delete(tenantId: string, id: string): Promise<void> {
-    await this.prisma.contact.update({
+    await this.prisma.contact.delete({
       where: { id, tenantId },
-      data: { deletedAt: new Date() },
     });
   }
 

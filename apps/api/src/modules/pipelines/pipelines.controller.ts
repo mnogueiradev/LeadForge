@@ -52,7 +52,7 @@ export class PipelinesController {
   async create(@Req() req: any, @Body() dto: CreatePipelineDto) {
     return this.createPipelineUseCase.execute(
       req.user.tenantId,
-      req.user.userId,
+      req.user.sub,
       dto,
     );
   }
@@ -86,7 +86,7 @@ export class PipelinesController {
     return this.updatePipelineUseCase.execute(
       req.user.tenantId,
       id,
-      req.user.userId,
+      req.user.sub,
       dto,
     );
   }
@@ -97,7 +97,7 @@ export class PipelinesController {
     return this.activatePipelineUseCase.execute(
       req.user.tenantId,
       id,
-      req.user.userId,
+      req.user.sub,
     );
   }
 
@@ -107,7 +107,7 @@ export class PipelinesController {
     return this.deactivatePipelineUseCase.execute(
       req.user.tenantId,
       id,
-      req.user.userId,
+      req.user.sub,
     );
   }
 
@@ -117,7 +117,7 @@ export class PipelinesController {
     return this.setDefaultPipelineUseCase.execute(
       req.user.tenantId,
       id,
-      req.user.userId,
+      req.user.sub,
     );
   }
 
@@ -128,7 +128,7 @@ export class PipelinesController {
     await this.archivePipelineUseCase.execute(
       req.user.tenantId,
       id,
-      req.user.userId,
+      req.user.sub,
     );
   }
 

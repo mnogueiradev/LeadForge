@@ -381,6 +381,8 @@ model Organization {
   legalName   String?            @map("legal_name") @db.VarChar(255)
   document    String?            @db.VarChar(50) // CNPJ, Tax ID, EIN
   website     String?            @db.VarChar(255)
+  email       String?            @db.VarChar(255)
+  phone       String?            @db.VarChar(50)
   industry    String?            @db.VarChar(100) // Segmento de atuação
   companySize CompanySize?       @map("company_size")
   description String?            @db.Text
@@ -488,7 +490,7 @@ model Contact {
   deletedAt DateTime? @map("deleted_at")
 
   tenant       Tenant        @relation(fields: [tenantId], references: [id])
-  organization Organization? @relation(fields: [organizationId], references: [id])
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   owner        User?         @relation("ContactOwner", fields: [ownerUserId], references: [id])
 
   emails         ContactEmail[]
@@ -892,8 +894,8 @@ model Lead {
 
   // Relacionamentos
   tenant       Tenant        @relation(fields: [tenantId], references: [id], map: "leads_tenant_id_fk")
-  contact      Contact       @relation(fields: [contactId], references: [id], map: "leads_contact_id_fk")
-  organization Organization? @relation(fields: [organizationId], references: [id], map: "leads_organization_id_fk")
+  contact      Contact       @relation(fields: [contactId], references: [id], onDelete: Cascade, map: "leads_contact_id_fk")
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade, map: "leads_organization_id_fk")
   owner        User          @relation("LeadOwner", fields: [ownerUserId], references: [id], map: "leads_owner_user_id_fk")
 
   customFields   CustomFieldValue[]
@@ -1021,12 +1023,12 @@ model Deal {
 
   // Relacionamentos
   tenant   Tenant        @relation(fields: [tenantId], references: [id], map: "deals_tenant_id_fk")
-  pipeline Pipeline      @relation(fields: [pipelineId], references: [id], map: "deals_pipeline_id_fk")
-  stage    PipelineStage @relation(fields: [stageId], references: [id], map: "deals_stage_id_fk")
+  pipeline Pipeline      @relation(fields: [pipelineId], references: [id], onDelete: Cascade, map: "deals_pipeline_id_fk")
+  stage    PipelineStage @relation(fields: [stageId], references: [id], onDelete: Cascade, map: "deals_stage_id_fk")
 
-  lead         Lead?         @relation("LeadToDeal", fields: [leadId], references: [id], map: "deals_lead_id_fk")
-  contact      Contact?      @relation(fields: [contactId], references: [id], map: "deals_contact_id_fk")
-  organization Organization? @relation(fields: [organizationId], references: [id], map: "deals_organization_id_fk")
+  lead         Lead?         @relation("LeadToDeal", fields: [leadId], references: [id], onDelete: Cascade, map: "deals_lead_id_fk")
+  contact      Contact?      @relation(fields: [contactId], references: [id], onDelete: Cascade, map: "deals_contact_id_fk")
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade, map: "deals_organization_id_fk")
 
   owner User @relation("DealOwner", fields: [ownerUserId], references: [id], map: "deals_owner_user_id_fk")
 
@@ -1076,9 +1078,9 @@ model DealMovement {
 
   tenant      Tenant         @relation(fields: [tenantId], references: [id], map: "dm_tenant_id_fk")
   deal        Deal           @relation(fields: [dealId], references: [id], onDelete: Cascade, map: "dm_deal_id_fk")
-  pipeline    Pipeline       @relation(fields: [pipelineId], references: [id], map: "dm_pipeline_id_fk")
-  fromStage   PipelineStage? @relation("DealMovementFromStage", fields: [fromStageId], references: [id], map: "dm_from_stage_id_fk")
-  toStage     PipelineStage  @relation("DealMovementToStage", fields: [toStageId], references: [id], map: "dm_to_stage_id_fk")
+  pipeline    Pipeline       @relation(fields: [pipelineId], references: [id], onDelete: Cascade, map: "dm_pipeline_id_fk")
+  fromStage   PipelineStage? @relation("DealMovementFromStage", fields: [fromStageId], references: [id], onDelete: Cascade, map: "dm_from_stage_id_fk")
+  toStage     PipelineStage  @relation("DealMovementToStage", fields: [toStageId], references: [id], onDelete: Cascade, map: "dm_to_stage_id_fk")
   movedByUser User?          @relation(fields: [movedByUserId], references: [id], map: "dm_moved_by_user_id_fk")
 
   @@index([tenantId, dealId])
@@ -1232,31 +1234,32 @@ model CalendarEvent {
   @@index([tenantId, ownerUserId, startAt, endAt])
   @@map("calendar_events")
 }
+
 // -------------------------------------------------------------
 // CRM DOMAIN: Attachments / Files
 // -------------------------------------------------------------
 
 model Attachment {
-  id           String     @id @default(uuid()) @db.Char(36)
-  tenantId     String     @map("tenant_id") @db.Char(36)
-  
+  id       String @id @default(uuid()) @db.Char(36)
+  tenantId String @map("tenant_id") @db.Char(36)
+
   // Polymorphic association (simulated)
-  entityType   EntityType @map("entity_type")
-  contactId    String?    @map("contact_id") @db.Char(36)
-  organizationId String?  @map("organization_id") @db.Char(36)
-  leadId       String?    @map("lead_id") @db.Char(36)
-  dealId       String?    @map("deal_id") @db.Char(36)
-  
-  uploadedById String     @map("uploaded_by_id") @db.Char(36)
+  entityType     EntityType @map("entity_type")
+  contactId      String?    @map("contact_id") @db.Char(36)
+  organizationId String?    @map("organization_id") @db.Char(36)
+  leadId         String?    @map("lead_id") @db.Char(36)
+  dealId         String?    @map("deal_id") @db.Char(36)
 
-  filename     String     @db.VarChar(255)
-  originalName String     @map("original_name") @db.VarChar(255)
-  mimeType     String     @map("mime_type") @db.VarChar(100)
-  size         Int        // File size in bytes
-  url          String     @db.VarChar(500)
+  uploadedById String @map("uploaded_by_id") @db.Char(36)
 
-  createdAt    DateTime   @default(now()) @map("created_at")
-  updatedAt    DateTime   @updatedAt @map("updated_at")
+  filename     String @db.VarChar(255)
+  originalName String @map("original_name") @db.VarChar(255)
+  mimeType     String @map("mime_type") @db.VarChar(100)
+  size         Int // File size in bytes
+  url          String @db.VarChar(500)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   uploadedBy   User          @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
@@ -1272,4 +1275,3 @@ model Attachment {
   @@index([tenantId, dealId])
   @@map("attachments")
 }
-

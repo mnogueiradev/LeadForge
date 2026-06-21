@@ -27,8 +27,13 @@ export class TimelineEventHandler {
   async handleTimelineEvent(payload: TimelineEventPayload) {
     try {
       this.logger.log(
-        `Receiving timeline event: ${payload.eventType} for ${payload.entityType} ${payload.entityId}`,
+        `Receiving timeline event: ${payload.eventType || 'UNKNOWN'} for ${payload.entityType} ${payload.entityId}`,
       );
+
+      if (!payload.eventType) {
+        this.logger.warn(`Timeline event skipped: missing eventType for payload ${JSON.stringify(payload)}`);
+        return;
+      }
 
       const title = this.formatTitle(payload.eventType, payload.data);
 

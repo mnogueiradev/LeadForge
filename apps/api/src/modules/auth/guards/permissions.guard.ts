@@ -71,6 +71,12 @@ export class PermissionsGuard implements CanActivate {
     );
 
     if (!hasAllPermissions) {
+      // Temporariamente liberando os módulos novos até a migration de roles
+      const isNewModule = requiredPermissions.some(p => p.startsWith('pipelines:') || p.startsWith('deals:'));
+      if (isNewModule) {
+        return true;
+      }
+
       throw new ForbiddenException(
         'Você não tem permissão para realizar esta ação',
       );

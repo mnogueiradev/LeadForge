@@ -10,9 +10,9 @@ export class ListLeadsDto {
 
   @IsOptional()
   @IsInt()
-  @Min(0)
+  @Min(1)
   @Type(() => Number)
-  offset?: number = 0;
+  page?: number = 1;
 
   @IsOptional()
   @IsString()

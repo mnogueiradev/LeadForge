@@ -62,7 +62,7 @@ export class PrismaLeadRepository implements ILeadRepository {
   ): Promise<PaginatedLeads> {
     const {
       limit = 20,
-      offset = 0,
+      page = 1,
       status,
       temperature,
       source,
@@ -105,7 +105,7 @@ export class PrismaLeadRepository implements ILeadRepository {
       this.prisma.lead.findMany({
         where,
         take: limit,
-        skip: offset,
+        skip: (page - 1) * limit,
         orderBy: { updatedAt: 'desc' },
         include: {
           contact: {
@@ -129,8 +129,22 @@ export class PrismaLeadRepository implements ILeadRepository {
       meta: {
         total,
         limit,
-        offset,
+        page,
+        totalPages: Math.ceil(total / limit),
       },
     };
+  }
+
+  async archive(id: string, tenantId: string): Promise<Lead> {
+    return this.prisma.lead.update({
+      where: { id, tenantId },
+      data: { status: 'ARCHIVED' },
+    });
+  }
+
+  async delete(id: string, tenantId: string): Promise<void> {
+    await this.prisma.lead.delete({
+      where: { id, tenantId },
+    });
   }
 }

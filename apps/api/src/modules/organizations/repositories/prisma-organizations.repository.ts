@@ -146,9 +146,8 @@ export class PrismaOrganizationRepository implements IOrganizationRepository {
   }
 
   async delete(tenantId: string, id: string): Promise<void> {
-    await this.prisma.organization.update({
+    await this.prisma.organization.delete({
       where: { id, tenantId },
-      data: { deletedAt: new Date() },
     });
   }
 
