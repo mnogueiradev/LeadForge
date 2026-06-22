@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { apiClient } from '@/lib/api-client';
+import { api as apiClient } from '@/lib/api';
 
 interface UserRolesSelectorProps {
   userId?: string;
@@ -7,7 +7,7 @@ interface UserRolesSelectorProps {
   onChange: (roleIds: string[]) => void;
 }
 
-export function UserRolesSelector({ userId, selectedRoleIds, onChange }: UserRolesSelectorProps) {
+export function UserRolesSelector({ selectedRoleIds, onChange }: UserRolesSelectorProps) {
   const [roles, setRoles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 

@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
 
 interface Role {
   id: string;
@@ -41,7 +41,7 @@ export function RoleTable({ roles, isLoading }: { roles: Role[], isLoading: bool
                 {role._count?.userRoles || 0}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <Link href={`/roles/${role.id}`} className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300">
+                <Link to={`/settings/roles/${role.id}`} className="text-blue-500 hover:underline">
                   Gerenciar
                 </Link>
               </td>

@@ -30,6 +30,9 @@ const PERMISSIONS = [
   { name: 'messages.send', description: 'Enviar mensagens' },
 
   // Settings
+  { name: 'settings.read', description: 'Visualizar configurações do tenant' },
+  { name: 'settings.write', description: 'Criar ou editar configurações do tenant' },
+  { name: 'settings.delete', description: 'Excluir configurações do tenant' },
   { name: 'settings.manage', description: 'Gerenciar configurações do tenant' },
   { name: 'billing.manage', description: 'Gerenciar faturamento do tenant' },
   { name: 'integrations.manage', description: 'Gerenciar integrações' },

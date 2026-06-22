@@ -12,6 +12,7 @@ import { OrganizationsListPage } from '../features/organizations/pages/Organizat
 import { ContactsListPage } from '../features/contacts/pages/ContactsListPage';
 import { LeadsListPage } from '../features/leads/pages/LeadsListPage';
 import { PipelinesPage } from '../features/pipelines/pages/PipelinesPage';
+import { PipelineDetailsPage } from '../features/pipelines/pages/PipelineDetailsPage';
 import { DealsBoardPage } from '../features/deals/pages/DealsBoardPage';
 import { ActivitiesPage } from '../features/activities/pages/ActivitiesPage';
 import { CalendarPage } from '../features/calendar/pages/CalendarPage';
@@ -47,6 +48,7 @@ export const router = createBrowserRouter([
           { path: 'contacts', element: <ContactsListPage /> },
           { path: 'leads', element: <LeadsListPage /> },
           { path: 'pipelines', element: <PipelinesPage /> },
+          { path: 'pipelines/:id', element: <PipelineDetailsPage /> },
           { path: 'deals', element: <DealsBoardPage /> },
           { path: 'activities', element: <ActivitiesPage /> },
           { path: 'calendar', element: <CalendarPage /> },

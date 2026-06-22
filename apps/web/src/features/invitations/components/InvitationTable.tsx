@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { apiClient } from '@/lib/api-client';
+import { api as apiClient } from '@/lib/api';
 
 interface Invitation {
   id: string;

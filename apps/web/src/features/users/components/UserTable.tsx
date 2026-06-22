@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
 import { UserStatusBadge } from './UserStatusBadge';
 
 interface User {
@@ -64,7 +64,7 @@ export function UserTable({ users, isLoading }: UserTableProps) {
                 {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : 'Nunca'}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <Link href={`/users/${user.id}`} className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300">
+                <Link to={`/settings/users/${user.id}`} className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300">
                   Editar
                 </Link>
               </td>

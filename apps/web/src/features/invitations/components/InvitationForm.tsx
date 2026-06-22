@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { apiClient } from '@/lib/api-client';
+import { api as apiClient } from '@/lib/api';
 
 export function InvitationForm({ onSuccess, onCancel }: { onSuccess: () => void, onCancel: () => void }) {
   const [email, setEmail] = useState('');

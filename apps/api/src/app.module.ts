@@ -35,6 +35,7 @@ import { CalendarModule } from './modules/calendar/calendar.module';
 import { AttachmentsModule } from './modules/attachments/attachments.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { AutomationsModule } from './modules/automations/automations.module';
+import { SettingsModule } from './modules/settings/settings.module';
 import { ClsModule } from 'nestjs-cls';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -126,6 +127,7 @@ import { v4 as uuidv4 } from 'uuid';
     AttachmentsModule,
     AnalyticsModule,
     AutomationsModule,
+    SettingsModule,
   ],
   controllers: [AppController],
   providers: [

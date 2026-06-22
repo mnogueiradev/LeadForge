@@ -3,11 +3,9 @@ import {
   Briefcase,
   Calendar,
   LayoutDashboard,
-  Users,
   Building2,
   Phone,
   Settings,
-  ShieldCheck,
   Target,
   KanbanSquare,
   Activity
@@ -47,7 +45,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { state } = useSidebar();
 
   return (
-    <Sidebar collapsible="icon" {...props}>
+    <Sidebar collapsible="icon" className="bg-background z-10" {...props}>
       <SidebarHeader className="flex h-16 items-center border-b px-6">
         {state === 'expanded' && <h2 className="text-xl text-emerald-600 font-bold tracking-tight">LeadForge</h2>}
         {state === 'collapsed' && <h2 className="text-xl text-emerald-600 font-bold tracking-tight">LF</h2>}
