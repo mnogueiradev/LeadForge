@@ -83,13 +83,18 @@ export function useUpdateSettings() {
     mutationFn: async (settings: { key: string; value: any }[]) => {
       const results = await Promise.allSettled(
         settings.map((setting) =>
-          api.put<Setting>(`/settings/${setting.key}`, { value: setting.value })
+          api.put<Setting>(`/settings/${setting.key}`, { value: setting.value }).catch((error) => {
+            const err = new Error(error.message);
+            (err as any).key = setting.key;
+            throw err;
+          })
         )
       );
 
-      const failed = results.filter((r) => r.status === 'rejected');
+      const failed = results.filter((r) => r.status === 'rejected') as PromiseRejectedResult[];
       if (failed.length > 0) {
-        throw new Error(`${failed.length} atualizações falharam.`);
+        const failedKeys = failed.map((f) => (f.reason as any).key || 'desconhecido');
+        throw new Error(`Erro ao salvar as chaves: ${failedKeys.join(', ')}. Verifique os valores e tente novamente.`);
       }
 
       return results;

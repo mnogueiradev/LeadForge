@@ -1,9 +1,11 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useUpdateSettings } from '../../api/use-settings';
+import { api } from '@/lib/api';
+import { toast } from 'sonner';
 
 import {
   Form,
@@ -22,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ImagePlus } from 'lucide-react';
+import { ImagePlus, Loader2 } from 'lucide-react';
 
 const appearanceSettingsSchema = z.object({
   theme: z.string().min(1, 'Tema é obrigatório'),
@@ -41,6 +43,7 @@ export function AppearanceSettingsTab({ initialData }: AppearanceSettingsTabProp
   const canWrite = hasPermission('settings.write');
   const updateSettings = useUpdateSettings();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const form = useForm<AppearanceSettingsValues>({
     resolver: zodResolver(appearanceSettingsSchema),
@@ -50,6 +53,15 @@ export function AppearanceSettingsTab({ initialData }: AppearanceSettingsTabProp
       logo_url: initialData.logo_url || '',
     },
   });
+
+  // Reset form when initialData changes
+  React.useEffect(() => {
+    form.reset({
+      theme: initialData.theme || 'system',
+      primary_color: initialData.primary_color || '#10b981',
+      logo_url: initialData.logo_url || '',
+    });
+  }, [initialData, form]);
 
   const onSubmit = (data: AppearanceSettingsValues) => {
     const dirtyFields = Object.keys(form.formState.dirtyFields) as (keyof AppearanceSettingsValues)[];
@@ -63,9 +75,38 @@ export function AppearanceSettingsTab({ initialData }: AppearanceSettingsTabProp
 
     updateSettings.mutate(updates, {
       onSuccess: () => {
-        form.reset(data);
+        // Form reset is handled by the useEffect watching initialData after query invalidation
       }
     });
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const res = await api.post('/attachments/ORGANIZATION/settings', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      const attachmentUrl = res.data.url; 
+      form.setValue('logo_url', attachmentUrl, { shouldDirty: true });
+      toast.success('Logo carregado. Salve as alterações para persistir.');
+    } catch (error) {
+      console.error(error);
+      toast.error('Erro ao fazer upload do logo.');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
 
   const currentLogo = form.watch('logo_url');
@@ -84,7 +125,7 @@ export function AppearanceSettingsTab({ initialData }: AppearanceSettingsTabProp
           <FormField
             control={form.control}
             name="logo_url"
-            render={({ field }) => (
+            render={() => (
               <FormItem>
                 <FormLabel>Logo da Empresa</FormLabel>
                 <div className="flex items-center gap-4 mt-2">
@@ -100,25 +141,29 @@ export function AppearanceSettingsTab({ initialData }: AppearanceSettingsTabProp
                       type="button"
                       variant="outline"
                       size="sm"
-                      disabled={!canWrite}
-                      onClick={() => {
-                        // For now this is just a placeholder action until AttachmentsModule is fully integrated here
-                        alert('A funcionalidade de upload via AttachmentsModule será implementada em breve.');
-                      }}
+                      disabled={!canWrite || updateSettings.isPending || isUploading}
+                      onClick={() => fileInputRef.current?.click()}
                     >
-                      Alterar Logo
+                      {isUploading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Enviando...
+                        </>
+                      ) : (
+                        'Alterar Logo'
+                      )}
                     </Button>
                     <p className="text-xs text-muted-foreground max-w-[200px]">
                       Recomendado: 256x256px, formato PNG ou SVG com fundo transparente.
                     </p>
                   </div>
                 </div>
-                {/* Hidden input for future integration */}
                 <input 
                   type="file" 
                   ref={fileInputRef} 
                   className="hidden" 
-                  accept="image/png, image/jpeg, image/svg+xml" 
+                  accept="image/png, image/jpeg, image/svg+xml"
+                  onChange={handleLogoUpload}
                 />
               </FormItem>
             )}

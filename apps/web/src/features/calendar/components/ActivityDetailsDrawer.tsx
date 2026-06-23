@@ -24,6 +24,8 @@ import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { calculateDealHealth, getDealHealthColor } from '@/features/deals/utils/deal-health';
 
+import { usePermissions } from '@/hooks/use-permissions';
+
 interface ActivityDetailsDrawerProps {
   activity: Activity | null;
   isOpen: boolean;
@@ -35,6 +37,8 @@ export function ActivityDetailsDrawer({ activity, isOpen, onClose, onEdit }: Act
   const completeActivity = useCompleteActivity();
   const cancelActivity = useCancelActivity();
   const navigate = useNavigate();
+  const { hasPermission } = usePermissions();
+  const canWrite = hasPermission('activities.write');
 
   if (!activity) return null;
 
@@ -71,7 +75,7 @@ export function ActivityDetailsDrawer({ activity, isOpen, onClose, onEdit }: Act
   const formattedDate = activity.dueDate ? format(new Date(activity.dueDate), "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : '';
   const formattedTime = activity.dueDate ? format(new Date(activity.dueDate), "HH:mm") : '';
 
-  const isEditable = activity.status === 'pending';
+  const isEditable = canWrite && activity.status === 'pending';
 
   const handleComplete = async () => {
     try {

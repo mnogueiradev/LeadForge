@@ -56,6 +56,18 @@ export function NotificationsSettingsTab({ initialData }: NotificationsSettingsT
     },
   });
 
+  // Reset form when initialData changes
+  React.useEffect(() => {
+    form.reset({
+      notify_new_leads: initialData.notify_new_leads === undefined ? true : (initialData.notify_new_leads === 'true' || initialData.notify_new_leads === true),
+      notify_won_deals: initialData.notify_won_deals === undefined ? true : (initialData.notify_won_deals === 'true' || initialData.notify_won_deals === true),
+      notify_lost_deals: initialData.notify_lost_deals === 'true' || initialData.notify_lost_deals === true,
+      notify_overdue_activities: initialData.notify_overdue_activities === undefined ? true : (initialData.notify_overdue_activities === 'true' || initialData.notify_overdue_activities === true),
+      notify_daily_meetings: initialData.notify_daily_meetings === undefined ? true : (initialData.notify_daily_meetings === 'true' || initialData.notify_daily_meetings === true),
+      reminder_time: initialData.reminder_time || '15m',
+    });
+  }, [initialData, form]);
+
   const onSubmit = (data: NotificationsSettingsValues) => {
     const dirtyFields = Object.keys(form.formState.dirtyFields) as (keyof NotificationsSettingsValues)[];
     
@@ -68,7 +80,7 @@ export function NotificationsSettingsTab({ initialData }: NotificationsSettingsT
 
     updateSettings.mutate(updates, {
       onSuccess: () => {
-        form.reset(data);
+        // Form reset is handled by the useEffect watching initialData after query invalidation
       }
     });
   };

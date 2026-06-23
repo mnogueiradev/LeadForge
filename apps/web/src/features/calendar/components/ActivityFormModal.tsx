@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
 
 import {
   Dialog,
@@ -95,7 +96,7 @@ export function ActivityFormModal({
       description: '',
       type: 'meeting',
       priority: 'medium',
-      date: initialDate || new Date().toISOString().split('T')[0],
+      date: initialDate || format(new Date(), 'yyyy-MM-dd'),
       time: initialTime || '',
       durationMinutes: 60,
       location: '',
@@ -109,7 +110,7 @@ export function ActivityFormModal({
   
   // Refetch contacts when org changes
   const { data: contactsData } = useContacts({ 
-    organizationId: selectedOrgId && selectedOrgId !== 'none' ? selectedOrgId : undefined 
+    organizationId: selectedOrgId && selectedOrgId !== 'none' ? selectedOrgId : undefined,
   });
   const contacts = Array.isArray(contactsData) ? contactsData : contactsData?.data ?? [];
 
@@ -123,12 +124,11 @@ export function ActivityFormModal({
           description: activity.description || '',
           type: activity.type,
           priority: activity.priority,
-          date: dueDate.toISOString().split('T')[0],
-          time: dueDate.toISOString().split('T')[1].substring(0, 5),
+          date: format(dueDate, 'yyyy-MM-dd'),
+          time: format(dueDate, 'HH:mm'),
           durationMinutes: activity.durationMinutes || 60,
           location: activity.location || '',
-          ownerUserId: activity.ownerUserId || '',
-          // Em modo edição o backend atual não suporta update via PATCH comum dessas relacoes, mas preenchemos para visualizacao:
+          ownerUserId: activity.ownerUserId || form.getValues('ownerUserId') || '',
           organizationId: activity.organizationId || 'none',
           contactId: activity.contactId || 'none',
         });
@@ -138,17 +138,24 @@ export function ActivityFormModal({
           description: '',
           type: 'meeting',
           priority: 'medium',
-          date: initialDate || new Date().toISOString().split('T')[0],
+          date: initialDate || format(new Date(), 'yyyy-MM-dd'),
           time: initialTime || '',
           durationMinutes: 60,
           location: '',
-          ownerUserId: users[0]?.id || '',
+          ownerUserId: form.getValues('ownerUserId') || '',
           organizationId: 'none',
           contactId: 'none',
         });
       }
     }
-  }, [isOpen, isEdit, activity, initialDate, initialTime, users]);
+  }, [isOpen, isEdit, activity?.id, initialDate, initialTime]); 
+
+  // Se users carregar e não houver ownerUserId, define o primeiro
+  React.useEffect(() => {
+    if (isOpen && users.length > 0 && !form.getValues('ownerUserId')) {
+      form.setValue('ownerUserId', users[0].id, { shouldValidate: true });
+    }
+  }, [isOpen, users, form]);
 
   // Se a empresa mudar, limpa o contato selecionado
   React.useEffect(() => {
@@ -160,8 +167,15 @@ export function ActivityFormModal({
   const onSubmit = async (values: ActivityFormValues) => {
     try {
       const dueDateTime = values.time 
-        ? new Date(`${values.date}T${values.time}:00`).toISOString()
-        : new Date(`${values.date}T12:00:00`).toISOString();
+        ? new Date(`${values.date}T${values.time}:00`)
+        : new Date(`${values.date}T12:00:00`);
+
+      if (!isEdit && dueDateTime < new Date()) {
+        form.setError('date', { type: 'manual', message: 'A data deve ser futura para novas atividades.' });
+        return;
+      }
+
+      const dueDateTimeISO = dueDateTime.toISOString();
 
       if (isEdit && activity) {
         await updateActivity.mutateAsync({
@@ -171,7 +185,7 @@ export function ActivityFormModal({
             description: values.description,
             type: values.type,
             priority: values.priority,
-            dueDate: dueDateTime,
+            dueDate: dueDateTimeISO,
             durationMinutes: values.durationMinutes,
             location: values.location,
           },
@@ -188,7 +202,7 @@ export function ActivityFormModal({
           description: values.description,
           type: values.type,
           priority: values.priority,
-          dueDate: dueDateTime,
+          dueDate: dueDateTimeISO,
           durationMinutes: values.durationMinutes,
           location: values.location,
           ownerUserId: values.ownerUserId,
@@ -198,11 +212,18 @@ export function ActivityFormModal({
 
         toast.success('Atividade criada com sucesso');
       }
+      form.reset();
       onClose();
-    } catch (error) {
-      console.error(error);
-      toast.error(isEdit ? 'Erro ao atualizar atividade' : 'Erro ao criar atividade');
+    } catch (error: any) {
+      console.error('Erro ao salvar atividade:', error);
+      const errorMessage = error?.response?.data?.message || error.message || 'Erro ao processar a requisição.';
+      toast.error(isEdit ? `Erro ao atualizar atividade: ${errorMessage}` : `Erro ao criar atividade: ${errorMessage}`);
     }
+  };
+
+  const onError = (errors: any) => {
+    console.error("Form validation errors:", errors);
+    toast.error("Por favor, preencha todos os campos obrigatórios.");
   };
 
   const isPending = createActivity.isPending || updateActivity.isPending || assignActivity.isPending;
@@ -218,7 +239,7 @@ export function ActivityFormModal({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+          <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-4 py-4">
             <FormField
               control={form.control}
               name="title"

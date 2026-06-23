@@ -35,9 +35,16 @@ import { toast } from 'sonner';
 import { format, addDays, addWeeks, startOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
+import { useSyncedFilters } from '../store/activityFiltersStore';
+import { usePermissions } from '@/hooks/use-permissions';
+
 export function CalendarPage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const filters = useSyncedFilters(searchParams, setSearchParams);
   const calendarRef = React.useRef<FullCalendar>(null);
+  
+  const { hasPermission } = usePermissions();
+  const canWrite = hasPermission('activities.write');
   
   const [dateRange, setDateRange] = React.useState<{ start: string; end: string } | null>(null);
   const [selectedActivity, setSelectedActivity] = React.useState<Activity | null>(null);
@@ -52,16 +59,21 @@ export function CalendarPage() {
   const updateActivity = useUpdateActivity();
   const completeActivity = useCompleteActivity();
 
-  // Filtros vindos da URL
+  React.useEffect(() => {
+    filters.initializeFromURL(searchParams);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only once to load initial url into Zustand
+
+  // Filtros
   const view = searchParams.get('view') || 'dayGridMonth';
-  const type = searchParams.get('type') || undefined;
-  const status = searchParams.get('status') || undefined;
-  const ownerUserId = searchParams.get('ownerUserId') || undefined;
-  const organizationId = searchParams.get('organizationId') || undefined;
-  const contactId = searchParams.get('contactId') || undefined;
-  const pipelineId = searchParams.get('pipelineId') || undefined;
-  const stageId = searchParams.get('stageId') || undefined;
-  const searchTerm = (searchParams.get('q') || '').toLowerCase();
+  const type = filters.type || undefined;
+  const status = filters.status || undefined;
+  const ownerUserId = filters.ownerUserId || undefined;
+  const organizationId = filters.organizationId || undefined;
+  const contactId = filters.contactId || undefined;
+  const pipelineId = filters.pipelineId || undefined;
+  const stageId = filters.stageId || undefined;
+  const searchTerm = (filters.search || '').toLowerCase();
 
   const { data: activitiesResponse, isLoading, isError } = useActivities({
     fromDate: dateRange?.start,
@@ -94,7 +106,7 @@ export function CalendarPage() {
   // Mapeamento das atividades para o FullCalendar
   const calendarEvents = React.useMemo(() => {
     return activities.map((activity) => {
-      const isEditable = activity.status === 'pending';
+      const isEditable = canWrite && activity.status === 'pending';
       let end: string | undefined = undefined;
 
       if (activity.durationMinutes) {
@@ -116,11 +128,12 @@ export function CalendarPage() {
         durationEditable: isEditable,
       };
     });
-  }, [activities]);
+  }, [activities, canWrite]);
 
   // Ações Rápidas via Tooltip/Dropdown
   const handleQuickComplete = async (activity: Activity, e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!canWrite) return;
     try {
       await completeActivity.mutateAsync(activity.id);
       toast.success('Atividade concluída com sucesso!');
@@ -131,6 +144,7 @@ export function CalendarPage() {
 
   const handleQuickReschedule = async (activity: Activity, days: number, e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!canWrite) return;
     try {
       const newDate = addDays(new Date(activity.dueDate), days);
       await updateActivity.mutateAsync({
@@ -173,6 +187,7 @@ export function CalendarPage() {
   };
 
   const handleDateClick = (arg: any) => {
+    if (!canWrite) return;
     setInitialDate(arg.dateStr.split('T')[0]);
     setInitialTime(arg.dateStr.split('T')[1]?.substring(0, 5) || undefined);
     setSelectedActivity(null);
@@ -181,6 +196,7 @@ export function CalendarPage() {
   };
 
   const handleSelect = (arg: any) => {
+    if (!canWrite) return;
     setInitialDate(arg.startStr.split('T')[0]);
     setInitialTime(arg.startStr.split('T')[1]?.substring(0, 5) || undefined);
     setSelectedActivity(null);
@@ -189,6 +205,10 @@ export function CalendarPage() {
   };
 
   const handleEventDrop = async (arg: EventDropArg) => {
+    if (!canWrite) {
+      arg.revert();
+      return;
+    }
     const activity = arg.event.extendedProps.activity as Activity;
     if (activity.status === 'completed' || activity.status === 'canceled') {
       arg.revert();
@@ -215,6 +235,10 @@ export function CalendarPage() {
   };
 
   const handleEventResize = async (arg: EventResizeDoneArg) => {
+    if (!canWrite) {
+      arg.revert();
+      return;
+    }
     const activity = arg.event.extendedProps.activity as Activity;
     if (activity.status === 'completed' || activity.status === 'canceled') {
       arg.revert();
@@ -370,10 +394,12 @@ export function CalendarPage() {
             <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => navigateTo(addWeeks(new Date(), 1))}>Próx Semana</Button>
             <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => navigateTo(startOfMonth(new Date()))}>Este Mês</Button>
           </div>
-          <Button onClick={openCreateModal} className="bg-emerald-600 hover:bg-emerald-700">
-            <Plus className="mr-2 h-4 w-4" />
-            Agendar
-          </Button>
+          {canWrite && (
+            <Button onClick={openCreateModal} className="bg-emerald-600 hover:bg-emerald-700">
+              <Plus className="mr-2 h-4 w-4" />
+              Agendar
+            </Button>
+          )}
         </div>
       </div>
 

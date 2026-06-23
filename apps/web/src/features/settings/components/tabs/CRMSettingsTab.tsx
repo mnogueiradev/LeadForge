@@ -51,7 +51,7 @@ export function CRMSettingsTab({ initialData }: CRMSettingsTabProps) {
   const pipelines = pipelinesData?.items || [];
 
   const form = useForm<CRMSettingsValues>({
-    resolver: zodResolver(crmSettingsSchema),
+    resolver: zodResolver(crmSettingsSchema) as any,
     defaultValues: {
       default_pipeline_id: initialData.default_pipeline_id || '',
       crm_auto_probability: initialData.crm_auto_probability === 'true' || initialData.crm_auto_probability === true,
@@ -61,6 +61,18 @@ export function CRMSettingsTab({ initialData }: CRMSettingsTabProps) {
       crm_forecast: initialData.crm_forecast === undefined ? true : (initialData.crm_forecast === 'true' || initialData.crm_forecast === true),
     },
   });
+
+  // Reset form when initialData changes
+  React.useEffect(() => {
+    form.reset({
+      default_pipeline_id: initialData.default_pipeline_id || '',
+      crm_auto_probability: initialData.crm_auto_probability === 'true' || initialData.crm_auto_probability === true,
+      crm_auto_activity: initialData.crm_auto_activity === 'true' || initialData.crm_auto_activity === true,
+      crm_stagnation_days: initialData.crm_stagnation_days ? parseInt(initialData.crm_stagnation_days) : 7,
+      crm_health_score: initialData.crm_health_score === undefined ? true : (initialData.crm_health_score === 'true' || initialData.crm_health_score === true),
+      crm_forecast: initialData.crm_forecast === undefined ? true : (initialData.crm_forecast === 'true' || initialData.crm_forecast === true),
+    });
+  }, [initialData, form]);
 
   const onSubmit = (data: CRMSettingsValues) => {
     const dirtyFields = Object.keys(form.formState.dirtyFields) as (keyof CRMSettingsValues)[];
@@ -75,7 +87,7 @@ export function CRMSettingsTab({ initialData }: CRMSettingsTabProps) {
 
     updateSettings.mutate(updates, {
       onSuccess: () => {
-        form.reset(data);
+        // Form reset is handled by the useEffect watching initialData after query invalidation
       }
     });
   };
@@ -90,7 +102,7 @@ export function CRMSettingsTab({ initialData }: CRMSettingsTabProps) {
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 max-w-2xl">
+        <form onSubmit={form.handleSubmit(onSubmit as any)} className="space-y-6 max-w-2xl">
           
           <FormField
             control={form.control as any}

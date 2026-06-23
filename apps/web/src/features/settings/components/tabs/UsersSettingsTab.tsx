@@ -81,7 +81,7 @@ export function UsersSettingsTab() {
 
       <div className="pt-4 flex justify-end">
         {/* We assume /rbac or /users is the route for managing users */}
-        <Button onClick={() => navigate('/rbac')} disabled={!canManageRoles}>
+        <Button onClick={() => navigate('/users')} disabled={!canManageRoles}>
           Gerenciar Usuários e Perfis
         </Button>
       </div>

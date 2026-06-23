@@ -64,6 +64,22 @@ export function GeneralSettingsTab({ initialData }: GeneralSettingsTabProps) {
     },
   });
 
+  // Reset form when initialData changes
+  React.useEffect(() => {
+    form.reset({
+      company_name: initialData.company_name || '',
+      company_legal_name: initialData.company_legal_name || '',
+      cnpj: initialData.cnpj || '',
+      email: initialData.email || '',
+      phone: initialData.phone || '',
+      website: initialData.website || '',
+      address: initialData.address || '',
+      timezone: initialData.timezone || 'America/Sao_Paulo',
+      language: initialData.language || 'pt-BR',
+      currency: initialData.currency || 'BRL',
+    });
+  }, [initialData, form]);
+
   const onSubmit = (data: GeneralSettingsValues) => {
     // Collect only dirty fields
     const dirtyFields = Object.keys(form.formState.dirtyFields) as (keyof GeneralSettingsValues)[];
@@ -77,7 +93,7 @@ export function GeneralSettingsTab({ initialData }: GeneralSettingsTabProps) {
 
     updateSettings.mutate(updates, {
       onSuccess: () => {
-        form.reset(data); // reset dirty fields state
+        // Form reset is handled by the useEffect watching initialData after query invalidation
       }
     });
   };

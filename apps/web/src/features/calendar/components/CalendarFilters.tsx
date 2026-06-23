@@ -7,9 +7,11 @@ import { useUsers } from '@/features/users/api/use-users';
 import { useOrganizations } from '@/features/organizations/api/use-organizations';
 import { useContacts } from '@/features/contacts/api/use-contacts';
 import { usePipelines, usePipelineStages } from '@/features/pipelines/api/use-pipelines';
+import { useSyncedFilters, ActivityFiltersState } from '../store/activityFiltersStore';
 
 export function CalendarFilters() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const filters = useSyncedFilters(searchParams, setSearchParams);
   
   const { data: usersData } = useUsers();
   const users = Array.isArray(usersData) ? usersData : usersData?.data ?? [];
@@ -17,7 +19,7 @@ export function CalendarFilters() {
   const { data: orgsData } = useOrganizations({ limit: 100 });
   const organizations = Array.isArray(orgsData) ? orgsData : orgsData?.data ?? [];
 
-  const selectedOrgId = searchParams.get('organizationId');
+  const selectedOrgId = filters.organizationId;
   const { data: contactsData } = useContacts({ 
     organizationId: selectedOrgId || undefined,
     limit: 100 
@@ -27,33 +29,24 @@ export function CalendarFilters() {
   const { data: pipelinesData } = usePipelines();
   const pipelines = Array.isArray(pipelinesData) ? pipelinesData : pipelinesData?.items ?? [];
 
-  const selectedPipelineId = searchParams.get('pipelineId');
+  const selectedPipelineId = filters.pipelineId;
   const { data: stagesData } = usePipelineStages(selectedPipelineId || '');
   const stages = Array.isArray(stagesData) ? stagesData : stagesData?.items ?? [];
 
-  const handleFilterChange = (key: string, value: string) => {
-    setSearchParams((prev) => {
-      const newParams = new URLSearchParams(prev);
-      if (value === 'all' || !value) {
-        newParams.delete(key);
-      } else {
-        newParams.set(key, value);
-      }
-      
-      // Cascading clear
-      if (key === 'organizationId' && value === 'all') {
-        newParams.delete('contactId');
-      }
-      if (key === 'pipelineId' && value === 'all') {
-        newParams.delete('stageId');
-      }
-      
-      return newParams;
-    }, { replace: true });
+  const handleFilterChange = (key: keyof ActivityFiltersState, value: string) => {
+    filters.setFilterAndSync(key as any, value);
+    
+    // Cascading clear
+    if (key === 'organizationId' && (value === 'all' || value === 'none')) {
+      filters.setFilterAndSync('contactId', '');
+    }
+    if (key === 'pipelineId' && (value === 'all' || value === 'none')) {
+      filters.setFilterAndSync('stageId', '');
+    }
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    handleFilterChange('q', e.target.value);
+    handleFilterChange('search', e.target.value);
   };
 
   return (
@@ -64,7 +57,7 @@ export function CalendarFilters() {
         <Input 
           placeholder="Buscar atividade por título, empresa, contato ou negócio..." 
           className="pl-9 bg-background w-full"
-          value={searchParams.get('q') || ''}
+          value={filters.search}
           onChange={handleSearchChange}
         />
       </div>
@@ -72,7 +65,7 @@ export function CalendarFilters() {
       <div className="flex flex-wrap items-center gap-4">
         <div className="w-[180px]">
           <Select
-            value={searchParams.get('ownerUserId') || 'all'}
+            value={filters.ownerUserId || 'all'}
             onValueChange={(value) => handleFilterChange('ownerUserId', value)}
           >
             <SelectTrigger>
@@ -91,7 +84,7 @@ export function CalendarFilters() {
 
         <div className="w-[180px]">
           <Select
-            value={searchParams.get('type') || 'all'}
+            value={filters.type || 'all'}
             onValueChange={(value) => handleFilterChange('type', value)}
           >
             <SelectTrigger>
@@ -111,7 +104,7 @@ export function CalendarFilters() {
 
         <div className="w-[180px]">
           <Select
-            value={searchParams.get('status') || 'all'}
+            value={filters.status || 'all'}
             onValueChange={(value) => handleFilterChange('status', value)}
           >
             <SelectTrigger>
@@ -131,7 +124,7 @@ export function CalendarFilters() {
       <div className="flex flex-wrap items-center gap-4">
         <div className="w-[180px]">
           <Select
-            value={searchParams.get('organizationId') || 'all'}
+            value={filters.organizationId || 'all'}
             onValueChange={(value) => handleFilterChange('organizationId', value)}
           >
             <SelectTrigger>
@@ -150,7 +143,7 @@ export function CalendarFilters() {
 
         <div className="w-[180px]">
           <Select
-            value={searchParams.get('contactId') || 'all'}
+            value={filters.contactId || 'all'}
             onValueChange={(value) => handleFilterChange('contactId', value)}
             disabled={!selectedOrgId}
           >
@@ -170,7 +163,7 @@ export function CalendarFilters() {
 
         <div className="w-[180px]">
           <Select
-            value={searchParams.get('pipelineId') || 'all'}
+            value={filters.pipelineId || 'all'}
             onValueChange={(value) => handleFilterChange('pipelineId', value)}
           >
             <SelectTrigger>
@@ -189,7 +182,7 @@ export function CalendarFilters() {
 
         <div className="w-[180px]">
           <Select
-            value={searchParams.get('stageId') || 'all'}
+            value={filters.stageId || 'all'}
             onValueChange={(value) => handleFilterChange('stageId', value)}
             disabled={!selectedPipelineId}
           >

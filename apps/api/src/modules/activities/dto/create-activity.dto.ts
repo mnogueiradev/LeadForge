@@ -6,7 +6,9 @@ import {
   IsNumber,
   IsDateString,
   IsObject,
+  IsUUID,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { ActivityType, ActivityPriority } from '@prisma/client';
 
 export class CreateActivityDto {
@@ -43,23 +45,27 @@ export class CreateActivityDto {
   metadata?: any;
 
   // Relations
-  @IsString()
+  @IsUUID()
   @IsNotEmpty()
   ownerUserId: string;
 
-  @IsString()
+  @IsUUID()
   @IsOptional()
+  @Transform(({ value }) => value === '' ? undefined : value)
   contactId?: string;
 
-  @IsString()
+  @IsUUID()
   @IsOptional()
+  @Transform(({ value }) => value === '' ? undefined : value)
   organizationId?: string;
 
-  @IsString()
+  @IsUUID()
   @IsOptional()
+  @Transform(({ value }) => value === '' ? undefined : value)
   leadId?: string;
 
-  @IsString()
+  @IsUUID()
   @IsOptional()
+  @Transform(({ value }) => value === '' ? undefined : value)
   dealId?: string;
 }

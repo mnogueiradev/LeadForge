@@ -33,14 +33,14 @@ export class ListActivitiesUseCase {
     const where: Prisma.ActivityWhereInput = {
       tenantId,
       deletedAt: null,
-      ...(filters.status && { status: filters.status }),
-      ...(filters.type && { type: filters.type }),
-      ...(filters.priority && { priority: filters.priority }),
-      ...(filters.ownerUserId && { ownerUserId: filters.ownerUserId }),
-      ...(filters.contactId && { contactId: filters.contactId }),
-      ...(filters.organizationId && { organizationId: filters.organizationId }),
-      ...(filters.leadId && { leadId: filters.leadId }),
-      ...(filters.dealId && { dealId: filters.dealId }),
+      ...(filters.status && filters.status !== '' as any && { status: filters.status }),
+      ...(filters.type && filters.type !== '' as any && { type: filters.type }),
+      ...(filters.priority && filters.priority !== '' as any && { priority: filters.priority }),
+      ...(filters.ownerUserId && filters.ownerUserId !== '' && { ownerUserId: filters.ownerUserId }),
+      ...(filters.contactId && filters.contactId !== '' && { contactId: filters.contactId }),
+      ...(filters.organizationId && filters.organizationId !== '' && { organizationId: filters.organizationId }),
+      ...(filters.leadId && filters.leadId !== '' && { leadId: filters.leadId }),
+      ...(filters.dealId && filters.dealId !== '' && { dealId: filters.dealId }),
     };
 
     if (filters.fromDate || filters.toDate) {
