@@ -5,8 +5,10 @@ import { ValidateStageTransitionUseCase } from './usecases/validate-stage-transi
 import { MoveDealStageUseCase } from './usecases/move-deal-stage.usecase';
 import { GetMovementHistoryUseCase } from './usecases/get-movement-history.usecase';
 import { ListStageMovementsUseCase } from './usecases/list-stage-movements.usecase';
+import { SettingsModule } from '../settings/settings.module';
 
 @Module({
+  imports: [SettingsModule],
   controllers: [PipelineMovementsController],
   providers: [
     { provide: PrismaClient, useFactory: async () => { const { prisma } = await import('../../lib/prisma'); return prisma; } },

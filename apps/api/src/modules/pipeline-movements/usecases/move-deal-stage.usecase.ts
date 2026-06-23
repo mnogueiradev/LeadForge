@@ -2,6 +2,7 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaClient, MovementSource, DealStatus } from '@prisma/client';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ValidateStageTransitionUseCase } from './validate-stage-transition.usecase';
+import { SettingsService } from '../../settings/settings.service';
 
 export interface MoveDealStageInput {
   tenantId: string;
@@ -19,6 +20,7 @@ export class MoveDealStageUseCase {
     private readonly prisma: PrismaClient,
     private readonly eventEmitter: EventEmitter2,
     private readonly validateStageTransition: ValidateStageTransitionUseCase,
+    private readonly settingsService: SettingsService,
   ) {}
 
   async execute(input: MoveDealStageInput) {
@@ -43,18 +45,28 @@ export class MoveDealStageUseCase {
       return deal; // Nothing to move
     }
 
+    // Check settings for automation
+    const settings = await this.settingsService.getSettings(tenantId);
+    const autoProbabilitySetting = settings.find(s => s.key === 'crm_auto_probability');
+    const autoActivitySetting = settings.find(s => s.key === 'crm_auto_activity');
+    
+    const isAutoProbabilityEnabled = autoProbabilitySetting?.value === 'true' || autoProbabilitySetting?.value === true;
+    const isAutoActivityEnabled = autoActivitySetting?.value === 'true' || autoActivitySetting?.value === true;
+
     // Determine target state (Won / Lost / Open)
     let newStatus: DealStatus = 'OPEN';
     let wonAt = null;
     let closedAt = null;
     let lostAt = null;
-    let newProbability = toStage.probability;
+    
+    // Auto probability logic
+    let newProbability = isAutoProbabilityEnabled ? toStage.probability : deal.probability;
 
     if (toStage.isWonStage) {
       newStatus = 'WON';
       wonAt = new Date();
       closedAt = new Date();
-      newProbability = 100;
+      if (isAutoProbabilityEnabled) newProbability = 100;
     } else if (toStage.isLostStage) {
       if (!reason) {
         throw new BadRequestException(
@@ -64,7 +76,7 @@ export class MoveDealStageUseCase {
       newStatus = 'LOST';
       lostAt = new Date();
       closedAt = new Date();
-      newProbability = 0;
+      if (isAutoProbabilityEnabled) newProbability = 0;
     }
 
     // Prepare metadata
@@ -91,7 +103,7 @@ export class MoveDealStageUseCase {
         },
       });
 
-      return tx.deal.update({
+      const updated = await tx.deal.update({
         where: { id: deal.id },
         data: {
           stageId: toStage.id,
@@ -102,6 +114,29 @@ export class MoveDealStageUseCase {
           ...(lostAt && { lostAt, lostReason: reason }),
         },
       });
+
+      // Auto activity logic
+      if (isAutoActivityEnabled) {
+        const dueDate = new Date();
+        dueDate.setDate(dueDate.getDate() + 1); // D+1
+        
+        await tx.activity.create({
+          data: {
+            tenantId,
+            title: `Follow-up - ${deal.title} - ${toStage.name}`,
+            type: 'CALL', // Generic follow-up type
+            priority: 'HIGH',
+            status: 'PENDING',
+            dueDate,
+            dealId: deal.id,
+            contactId: deal.contactId || null,
+            organizationId: deal.organizationId || null,
+            ownerUserId: deal.ownerUserId || userId, // Keep same owner as deal, fallback to user
+          }
+        });
+      }
+
+      return updated;
     });
 
     // Fire Domain Events

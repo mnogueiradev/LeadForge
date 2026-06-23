@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 import { usePipelines, usePipelineStages, useReorderPipelineStages } from '../../pipelines/api/use-pipelines';
 import { useDeals, useMoveDealStage, useDeleteDeal, Deal } from '../api/use-deals';
+import { useSettings } from '../../settings/api/use-settings';
 import { StageHeader } from '../components/StageHeader';
 import { CreateDealModal } from '../components/CreateDealModal';
 import { DealDrawer } from '../components/DealDrawer';
@@ -24,6 +25,13 @@ export function DealsBoardPage() {
   const ownerUserId = searchParams.get('ownerUserId') || undefined;
   const status = (searchParams.get('status') as any) || undefined;
   const pipelineIdParam = searchParams.get('pipeline') || undefined;
+
+  const { data: settings } = useSettings();
+  const crmForecast = settings?.find(s => s.key === 'crm_forecast')?.value;
+  const showForecast = crmForecast === undefined || crmForecast === 'true' || crmForecast === true;
+  
+  const crmHealthScore = settings?.find(s => s.key === 'crm_health_score')?.value;
+  const showHealthScore = crmHealthScore === undefined || crmHealthScore === 'true' || crmHealthScore === true;
 
   const { data: pipelinesResponse, isLoading: isLoadingPipelines } = usePipelines();
   const pipelines = pipelinesResponse?.items || [];
@@ -229,7 +237,7 @@ export function DealsBoardPage() {
         </Button>
       </div>
 
-      <PipelineMetrics deals={deals} />
+      {showForecast && <PipelineMetrics deals={deals} />}
       <DealsFilters />
 
       {deals.length === 0 && !search && !ownerUserId && !status ? (
@@ -290,7 +298,9 @@ export function DealsBoardPage() {
                                         onClick={() => handleDealClick(deal.id)}
                                       >
                                         <div className="flex justify-between items-start mb-2">
-                                          <h4 className="font-medium text-sm leading-tight pr-2">{deal.title}</h4>
+                                          <div className="flex flex-col">
+                                            <h4 className="font-medium text-sm leading-tight pr-2">{deal.title}</h4>
+                                          </div>
                                           <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
                                               <Button variant="ghost" size="icon" className="h-5 w-5 -mt-1 -mr-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
@@ -315,11 +325,22 @@ export function DealsBoardPage() {
                                             <DollarSign className="h-3 w-3 mr-1" />
                                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(deal.value || 0))}
                                           </div>
-                                          {deal.probability > 0 && (
-                                            <Badge variant="outline" className="text-[10px]">
-                                              {deal.probability}%
-                                            </Badge>
-                                          )}
+                                          <div className="flex items-center gap-2">
+                                            {showHealthScore && (
+                                              <div 
+                                                title={deal.probability >= 70 ? 'Quente' : deal.probability >= 30 ? 'Morno' : 'Frio'}
+                                                className={`h-2.5 w-2.5 rounded-full ${
+                                                  deal.probability >= 70 ? 'bg-red-500' : 
+                                                  deal.probability >= 30 ? 'bg-amber-400' : 'bg-blue-400'
+                                                }`} 
+                                              />
+                                            )}
+                                            {deal.probability > 0 && (
+                                              <Badge variant="outline" className="text-[10px]">
+                                                {deal.probability}%
+                                              </Badge>
+                                            )}
+                                          </div>
                                         </div>
                                       </div>
                                     )}
