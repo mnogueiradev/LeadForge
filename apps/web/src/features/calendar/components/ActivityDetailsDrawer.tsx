@@ -38,8 +38,7 @@ export function ActivityDetailsDrawer({ activity, isOpen, onClose, onEdit }: Act
   const cancelActivity = useCancelActivity();
   const navigate = useNavigate();
   const { hasPermission } = usePermissions();
-  // Temporarily bypass since 'activities.write' doesn't exist in Prisma seed
-  const canWrite = true;
+  const canWrite = hasPermission('activities.write');
 
   if (!activity) return null;
 

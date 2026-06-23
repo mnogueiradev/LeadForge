@@ -37,6 +37,10 @@ const PERMISSIONS = [
   { name: 'billing.manage', description: 'Gerenciar faturamento do tenant' },
   { name: 'integrations.manage', description: 'Gerenciar integrações' },
 
+  // Activities
+  { name: 'activities.read', description: 'Visualizar atividades' },
+  { name: 'activities.write', description: 'Criar e editar atividades' },
+
   // Timeline
   { name: 'timeline.read_entity', description: 'Visualizar histórico (timeline)' },
 

@@ -33,9 +33,9 @@ export class ListActivitiesUseCase {
     const where: Prisma.ActivityWhereInput = {
       tenantId,
       deletedAt: null,
-      ...(filters.status && filters.status !== '' as any && { status: filters.status }),
-      ...(filters.type && filters.type !== '' as any && { type: filters.type }),
-      ...(filters.priority && filters.priority !== '' as any && { priority: filters.priority }),
+      ...(filters.status && filters.status !== '' as any && { status: (filters.status as string).toUpperCase() as ActivityStatus }),
+      ...(filters.type && filters.type !== '' as any && { type: (filters.type as string).toUpperCase() as ActivityType }),
+      ...(filters.priority && filters.priority !== '' as any && { priority: (filters.priority as string).toUpperCase() as ActivityPriority }),
       ...(filters.ownerUserId && filters.ownerUserId !== '' && { ownerUserId: filters.ownerUserId }),
       ...(filters.contactId && filters.contactId !== '' && { contactId: filters.contactId }),
       ...(filters.organizationId && filters.organizationId !== '' && { organizationId: filters.organizationId }),
