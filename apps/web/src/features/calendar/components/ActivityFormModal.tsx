@@ -44,7 +44,7 @@ import {
 const activitySchema = z.object({
   title: z.string().min(1, 'O título é obrigatório'),
   description: z.string().optional(),
-  type: z.enum(['call', 'meeting', 'email', 'task', 'whatsapp', 'follow_up'], {
+  type: z.enum(['call', 'meeting', 'email', 'task', 'message', 'follow_up'], {
     required_error: 'O tipo é obrigatório',
   }),
   priority: z.enum(['low', 'medium', 'high']).optional(),
@@ -183,8 +183,8 @@ export function ActivityFormModal({
           data: {
             title: values.title,
             description: values.description,
-            type: values.type,
-            priority: values.priority,
+            type: values.type.toUpperCase() as any,
+            priority: values.priority ? values.priority.toUpperCase() as any : undefined,
             dueDate: dueDateTimeISO,
             durationMinutes: values.durationMinutes,
             location: values.location,
@@ -200,8 +200,8 @@ export function ActivityFormModal({
         await createActivity.mutateAsync({
           title: values.title,
           description: values.description,
-          type: values.type,
-          priority: values.priority,
+          type: values.type.toUpperCase() as any,
+          priority: values.priority ? values.priority.toUpperCase() as any : undefined,
           dueDate: dueDateTimeISO,
           durationMinutes: values.durationMinutes,
           location: values.location,
@@ -271,7 +271,7 @@ export function ActivityFormModal({
                         <SelectItem value="call">Ligação</SelectItem>
                         <SelectItem value="meeting">Reunião</SelectItem>
                         <SelectItem value="email">Email</SelectItem>
-                        <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                        <SelectItem value="message">Mensagem (WhatsApp/SMS)</SelectItem>
                         <SelectItem value="follow_up">Follow-up</SelectItem>
                         <SelectItem value="task">Tarefa</SelectItem>
                       </SelectContent>

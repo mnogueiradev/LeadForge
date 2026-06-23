@@ -2,10 +2,12 @@ import { Outlet } from 'react-router-dom';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/app-sidebar';
 import { Topbar } from '@/components/layout/topbar';
+import { ActivityNotifier } from '@/features/activities/components/ActivityNotifier';
 
 export function DashboardLayout() {
   return (
     <SidebarProvider>
+      <ActivityNotifier />
       <div className="flex h-screen w-full bg-muted/40 overflow-hidden">
         <AppSidebar />
         

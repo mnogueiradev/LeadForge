@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 
 export type ActivityStatus = 'pending' | 'completed' | 'canceled';
-export type ActivityType = 'call' | 'meeting' | 'email' | 'task' | 'whatsapp' | 'follow_up';
+export type ActivityType = 'call' | 'meeting' | 'email' | 'task' | 'message' | 'follow_up';
 export type ActivityPriority = 'low' | 'medium' | 'high';
 
 export interface Activity {

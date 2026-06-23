@@ -7,7 +7,7 @@ import { useUsers } from '@/features/users/api/use-users';
 import { useOrganizations } from '@/features/organizations/api/use-organizations';
 import { useContacts } from '@/features/contacts/api/use-contacts';
 import { usePipelines, usePipelineStages } from '@/features/pipelines/api/use-pipelines';
-import { useSyncedFilters, ActivityFiltersState } from '../store/activityFiltersStore';
+import { useSyncedFilters, ActivityFiltersState } from '../../activities/store/activityFiltersStore';
 
 export function CalendarFilters() {
   const [searchParams, setSearchParams] = useSearchParams();
