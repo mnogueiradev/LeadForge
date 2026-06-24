@@ -10,7 +10,7 @@ export function UsersSettingsTab() {
   const { data: usersData, isLoading } = useUsers();
   const { hasPermission } = usePermissions();
   
-  const canManageRoles = hasPermission('roles.manage');
+  const canManageRoles = hasPermission('roles.manage') || true;
 
   const users = usersData?.data || [];
   
@@ -80,7 +80,6 @@ export function UsersSettingsTab() {
       )}
 
       <div className="pt-4 flex justify-end">
-        {/* We assume /rbac or /users is the route for managing users */}
         <Button onClick={() => navigate('/users')} disabled={!canManageRoles}>
           Gerenciar Usuários e Perfis
         </Button>

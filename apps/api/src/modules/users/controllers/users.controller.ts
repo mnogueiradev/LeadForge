@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Body,
   Param,
   Query,
@@ -19,6 +20,8 @@ import { ListUsersUseCase } from '../usecases/list-users.usecase';
 import { DeactivateUserUseCase } from '../usecases/deactivate-user.usecase';
 import { ActivateUserUseCase } from '../usecases/activate-user.usecase';
 import { UpdateProfileUseCase } from '../usecases/update-profile.usecase';
+import { DeleteUserUseCase } from '../usecases/delete-user.usecase';
+import { DeleteUserDto } from '../dtos/delete-user.dto';
 
 @Controller('users')
 export class UsersController {
@@ -30,6 +33,7 @@ export class UsersController {
     private readonly deactivateUserUseCase: DeactivateUserUseCase,
     private readonly activateUserUseCase: ActivateUserUseCase,
     private readonly updateProfileUseCase: UpdateProfileUseCase,
+    private readonly deleteUserUseCase: DeleteUserUseCase,
   ) {}
 
   @Get()
@@ -77,5 +81,14 @@ export class UsersController {
   @Patch(':id/deactivate')
   async deactivate(@CurrentUser() user: any, @Param('id') id: string) {
     return this.deactivateUserUseCase.execute(user.tenantId, id);
+  }
+
+  @Delete(':id')
+  async remove(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body() data: DeleteUserDto,
+  ) {
+    return this.deleteUserUseCase.execute(user.tenantId, user.sub, id, data);
   }
 }

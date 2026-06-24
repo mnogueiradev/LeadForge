@@ -10,6 +10,7 @@ import { ListUsersUseCase } from './usecases/list-users.usecase';
 import { DeactivateUserUseCase } from './usecases/deactivate-user.usecase';
 import { ActivateUserUseCase } from './usecases/activate-user.usecase';
 import { UpdateProfileUseCase } from './usecases/update-profile.usecase';
+import { DeleteUserUseCase } from './usecases/delete-user.usecase';
 import { RedisModule } from '../redis/redis.module';
 
 @Module({
@@ -24,8 +25,9 @@ import { RedisModule } from '../redis/redis.module';
     ListUsersUseCase,
     DeactivateUserUseCase,
     ActivateUserUseCase,
-    UpdateProfileUseCase
+    UpdateProfileUseCase,
+    DeleteUserUseCase
   ],
-  exports: [IUserRepository],
+  exports: [IUserRepository, DeleteUserUseCase],
 })
 export class UsersModule {}

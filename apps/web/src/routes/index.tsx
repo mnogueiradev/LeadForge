@@ -18,6 +18,8 @@ import { ActivitiesPage } from '../features/activities/pages/ActivitiesPage';
 import { CalendarPage } from '../features/calendar/pages/CalendarPage';
 import { SettingsPage } from '../features/settings/pages/SettingsPage';
 
+import { UsersPage } from '../features/users/pages/UsersPage';
+
 export const router = createBrowserRouter([
   {
     path: '/',
@@ -53,6 +55,7 @@ export const router = createBrowserRouter([
           { path: 'activities', element: <ActivitiesPage /> },
           { path: 'calendar', element: <CalendarPage /> },
           { path: 'settings', element: <SettingsPage /> },
+          { path: 'users', element: <UsersPage /> },
         ],
       },
     ],

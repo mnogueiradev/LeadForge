@@ -55,6 +55,13 @@ export class PrismaUserRepository implements IUserRepository {
         skip,
         take: params.limit,
         orderBy: { [params.sort]: params.direction },
+        include: {
+          userRoles: {
+            include: {
+              role: true,
+            },
+          },
+        },
       }),
       this.prisma.user.count({ where }),
     ]);
