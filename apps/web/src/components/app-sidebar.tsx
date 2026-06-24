@@ -41,14 +41,23 @@ const adminItems = [
   { title: 'Configurações', url: '/settings', icon: Settings },
 ];
 
+import { useAppearance } from '@/providers/appearance-provider';
+
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { state } = useSidebar();
+  const { logoUrl } = useAppearance();
 
   return (
     <Sidebar collapsible="icon" className="bg-background z-10" {...props}>
-      <SidebarHeader className="flex h-16 items-center border-b px-6">
-        {state === 'expanded' && <h2 className="text-xl text-emerald-600 font-bold tracking-tight">LeadForge</h2>}
-        {state === 'collapsed' && <h2 className="text-xl text-emerald-600 font-bold tracking-tight">LF</h2>}
+      <SidebarHeader className="flex h-16 items-center justify-center border-b px-6">
+        {logoUrl ? (
+          <img src={logoUrl} alt="Logo" className={`object-contain transition-all duration-300 ${state === 'expanded' ? 'max-h-10' : 'max-h-8 max-w-8'}`} />
+        ) : (
+          <>
+            {state === 'expanded' && <h2 className="text-xl text-primary font-bold tracking-tight">LeadForge</h2>}
+            {state === 'collapsed' && <h2 className="text-xl text-primary font-bold tracking-tight">LF</h2>}
+          </>
+        )}
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>

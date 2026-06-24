@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, UseQueryOptions } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 
@@ -15,7 +15,7 @@ interface FindSettingsParams {
   search?: string;
 }
 
-export function useSettings(params?: FindSettingsParams) {
+export function useSettings(params?: FindSettingsParams, options?: Omit<UseQueryOptions<Setting[], Error, Setting[], any>, 'queryKey' | 'queryFn'>) {
   return useQuery({
     queryKey: ['settings', params],
     queryFn: async () => {
@@ -24,6 +24,7 @@ export function useSettings(params?: FindSettingsParams) {
       });
       return data;
     },
+    ...options,
   });
 }
 

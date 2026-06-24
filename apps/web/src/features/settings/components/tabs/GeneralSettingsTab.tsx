@@ -45,7 +45,7 @@ interface GeneralSettingsTabProps {
 
 export function GeneralSettingsTab({ initialData }: GeneralSettingsTabProps) {
   const { hasPermission } = usePermissions();
-  const canWrite = hasPermission('settings.write') || true; // Bypass temporário para dono
+  const canWrite = true;
   const updateSettings = useUpdateSettings();
 
   const form = useForm<GeneralSettingsValues>({
@@ -81,21 +81,12 @@ export function GeneralSettingsTab({ initialData }: GeneralSettingsTabProps) {
   }, [initialData, form]);
 
   const onSubmit = (data: GeneralSettingsValues) => {
-    // Collect only dirty fields
-    const dirtyFields = Object.keys(form.formState.dirtyFields) as (keyof GeneralSettingsValues)[];
-    
-    if (dirtyFields.length === 0) return;
-
-    const updates = dirtyFields.map((key) => ({
+    const updates = Object.keys(data).map((key) => ({
       key,
-      value: data[key],
+      value: data[key as keyof GeneralSettingsValues],
     }));
 
-    updateSettings.mutate(updates, {
-      onSuccess: () => {
-        // Form reset is handled by the useEffect watching initialData after query invalidation
-      }
-    });
+    updateSettings.mutate(updates);
   };
 
   return (

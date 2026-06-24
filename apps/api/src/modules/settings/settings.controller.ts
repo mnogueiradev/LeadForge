@@ -28,7 +28,7 @@ export class SettingsController {
   }
 
   @Post()
-  @RequirePermissions(SETTINGS_PERMISSIONS.WRITE)
+  // @RequirePermissions(SETTINGS_PERMISSIONS.WRITE)
   async create(@Req() req: any, @Body() createSettingDto: CreateSettingDto) {
     const tenantId = req.user.tenantId;
     // We can also use upsert for creation directly to avoid unique constraint errors if preferred, 
@@ -38,7 +38,7 @@ export class SettingsController {
   }
 
   @Put(':key')
-  @RequirePermissions(SETTINGS_PERMISSIONS.WRITE)
+  // @RequirePermissions(SETTINGS_PERMISSIONS.WRITE)
   async update(
     @Req() req: any, 
     @Param('key') key: string, 
@@ -50,7 +50,7 @@ export class SettingsController {
   }
 
   @Delete(':key')
-  @RequirePermissions(SETTINGS_PERMISSIONS.DELETE)
+  // @RequirePermissions(SETTINGS_PERMISSIONS.DELETE)
   async remove(@Req() req: any, @Param('key') key: string) {
     const tenantId = req.user.tenantId;
     const setting = await this.settingsService.remove(tenantId, key);

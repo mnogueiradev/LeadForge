@@ -6,6 +6,7 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Building2, Eye, EyeOff, Loader2 } from 'lucide-react';
 
 import { useAuth } from '@/providers/auth-provider';
+import { useAppearance } from '@/providers/appearance-provider';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -26,6 +27,7 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const { login } = useAuth();
+  const { logoUrl } = useAppearance();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -59,9 +61,15 @@ export function LoginPage() {
     <div className="flex h-screen w-full items-center justify-center bg-zinc-50 dark:bg-zinc-950">
       <div className="mx-auto flex w-full max-w-[400px] flex-col justify-center space-y-6 sm:w-[400px]">
         <div className="flex flex-col space-y-2 text-center items-center">
-          <div className="h-12 w-12 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-4">
-            <Building2 className="h-6 w-6 text-emerald-500" />
-          </div>
+          {logoUrl ? (
+            <div className="mb-4 flex items-center justify-center">
+              <img src={logoUrl} alt="Logo" className="max-h-16 object-contain" />
+            </div>
+          ) : (
+            <div className="h-12 w-12 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-4">
+              <Building2 className="h-6 w-6 text-emerald-500" />
+            </div>
+          )}
           <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
             Bem-vindo de volta
           </h1>

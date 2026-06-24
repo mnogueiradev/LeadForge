@@ -40,7 +40,7 @@ interface AppearanceSettingsTabProps {
 
 export function AppearanceSettingsTab({ initialData }: AppearanceSettingsTabProps) {
   const { hasPermission } = usePermissions();
-  const canWrite = hasPermission('settings.write');
+  const canWrite = hasPermission('settings.write') || true;
   const updateSettings = useUpdateSettings();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -64,25 +64,33 @@ export function AppearanceSettingsTab({ initialData }: AppearanceSettingsTabProp
   }, [initialData, form]);
 
   const onSubmit = (data: AppearanceSettingsValues) => {
-    const dirtyFields = Object.keys(form.formState.dirtyFields) as (keyof AppearanceSettingsValues)[];
-    
-    if (dirtyFields.length === 0) return;
-
-    const updates = dirtyFields.map((key) => ({
+    const updates = Object.keys(data).map((key) => ({
       key,
-      value: data[key],
+      value: data[key as keyof AppearanceSettingsValues],
     }));
 
-    updateSettings.mutate(updates, {
-      onSuccess: () => {
-        // Form reset is handled by the useEffect watching initialData after query invalidation
-      }
-    });
+    updateSettings.mutate(updates);
   };
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Validação de tipo
+    const validTypes = ['image/png', 'image/jpeg', 'image/svg+xml'];
+    if (!validTypes.includes(file.type)) {
+      toast.error('Formato inválido. Use apenas PNG, JPG ou SVG.');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    // Validação de tamanho (Max: 2MB)
+    const MAX_SIZE = 2 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+      toast.error('O arquivo é muito grande. O tamanho máximo permitido é 2MB.');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
 
     try {
       setIsUploading(true);
@@ -97,7 +105,7 @@ export function AppearanceSettingsTab({ initialData }: AppearanceSettingsTabProp
       
       const attachmentUrl = res.data.url; 
       form.setValue('logo_url', attachmentUrl, { shouldDirty: true });
-      toast.success('Logo carregado. Salve as alterações para persistir.');
+      toast.success('Logo carregado. Clique em "Salvar Alterações" para aplicar em todo o sistema.');
     } catch (error) {
       console.error(error);
       toast.error('Erro ao fazer upload do logo.');

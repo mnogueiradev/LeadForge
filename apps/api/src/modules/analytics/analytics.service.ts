@@ -8,76 +8,77 @@ export class AnalyticsService {
   async getDashboardData(tenantId: string) {
     const baseWhere = { tenantId, deletedAt: null };
 
-    // 1. Total Leads
-    const totalLeads = await this.prisma.lead.count({ where: baseWhere });
-
-    // 2. Converted Leads
-    const convertedLeads = await this.prisma.lead.count({
-      where: { ...baseWhere, status: 'CONVERTED' },
+    // 1. Leads Ativos (status != 'CONVERTED' and status != 'JUNK' or 'LOST' if applicable)
+    // Looking at common status, let's just exclude CONVERTED and LOST
+    const activeLeads = await this.prisma.lead.count({
+      where: { ...baseWhere, status: { notIn: ['CONVERTED', 'LOST', 'UNQUALIFIED', 'ARCHIVED'] } },
     });
 
-    // 3. Estimated Value (Sum)
-    const sumResult = await this.prisma.lead.aggregate({
-      where: baseWhere,
-      _sum: { estimatedValue: true },
+    // 2. Negócios Abertos
+    const openDeals = await this.prisma.deal.count({
+      where: { ...baseWhere, status: 'OPEN' },
     });
-    const totalEstimatedValue = sumResult._sum.estimatedValue?.toNumber() || 0;
 
-    // 4. Conversion Rate
-    const conversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0;
-
-    // 5. Leads by Status (Funnel)
-    const statusGroups = await this.prisma.lead.groupBy({
-      by: ['status'],
-      where: baseWhere,
-      _count: true,
+    // 3. Receita Prevista (Deals OPEN value sum)
+    const sumResult = await this.prisma.deal.aggregate({
+      where: { ...baseWhere, status: 'OPEN' },
+      _sum: { value: true },
     });
-    const funnelData = statusGroups.map((g: any) => ({
-      status: g.status,
-      count: g._count,
-    }));
+    const expectedRevenue = sumResult._sum.value?.toNumber() || 0;
 
-    // 6. Leads by Temperature
-    const tempGroups = await this.prisma.lead.groupBy({
-      by: ['temperature'],
-      where: baseWhere,
-      _count: true,
+    // 4. Atividades Pendentes
+    const pendingActivities = await this.prisma.activity.count({
+      where: { ...baseWhere, status: { in: ['PENDING', 'IN_PROGRESS', 'OVERDUE'] } },
     });
-    const temperatureData = tempGroups.map((g: any) => ({
-      temperature: g.temperature,
-      count: g._count,
-    }));
 
-    // 7. Recent Leads (last 5)
-    const recentLeads = await this.prisma.lead.findMany({
+    // 5. Recent Leads (last 5)
+    const recentLeadsDb = await this.prisma.lead.findMany({
       where: baseWhere,
       orderBy: { createdAt: 'desc' },
       take: 5,
       include: {
-        contact: { select: { firstName: true, lastName: true, primaryEmail: true } },
+        contact: { select: { firstName: true, lastName: true } },
+        organization: { select: { name: true } },
       },
     });
 
+    const recentLeads = recentLeadsDb.map((l: any) => ({
+      id: l.id,
+      name: l.contact ? `${l.contact.firstName} ${l.contact.lastName || ''}`.trim() : l.title,
+      company: l.organization?.name || 'Sem Empresa',
+      value: l.estimatedValue?.toNumber() || 0,
+      status: l.status,
+    }));
+
+    // 6. Recent Activities
+    const recentActivitiesDb = await this.prisma.activity.findMany({
+      where: baseWhere,
+      orderBy: { dueDate: 'desc' },
+      take: 5,
+      include: {
+        deal: { select: { title: true } },
+        lead: { select: { title: true } },
+      },
+    });
+
+    const recentActivities = recentActivitiesDb.map((a: any) => ({
+      id: a.id,
+      title: a.title,
+      type: a.type,
+      dueDate: a.dueDate,
+      isDone: a.status === 'COMPLETED',
+      relatedTo: a.deal?.title || a.lead?.title || 'Geral',
+    }));
+
     return {
       kpis: {
-        totalLeads,
-        convertedLeads,
-        totalEstimatedValue,
-        conversionRate,
+        activeLeads,
+        openDeals,
+        expectedRevenue,
+        pendingActivities,
       },
-      charts: {
-        funnel: funnelData,
-        temperature: temperatureData,
-      },
-      recentLeads: recentLeads.map((l: any) => ({
-        id: l.id,
-        title: l.title,
-        status: l.status,
-        createdAt: l.createdAt,
-        contactName: l.contact ? `${l.contact.firstName} ${l.contact.lastName || ''}`.trim() : 'Sem contato',
-        contactEmail: l.contact?.primaryEmail || '',
-        value: l.estimatedValue?.toNumber() || 0,
-      })),
+      recentLeads,
+      recentActivities,
     };
   }
 }

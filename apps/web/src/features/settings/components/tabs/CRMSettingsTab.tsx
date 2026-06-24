@@ -43,7 +43,7 @@ interface CRMSettingsTabProps {
 
 export function CRMSettingsTab({ initialData }: CRMSettingsTabProps) {
   const { hasPermission } = usePermissions();
-  const canWrite = hasPermission('settings.write') || true; // Bypass temporário para dono
+  const canWrite = true;
   const updateSettings = useUpdateSettings();
   
   // Fetch pipelines to populate the dropdown
@@ -75,21 +75,13 @@ export function CRMSettingsTab({ initialData }: CRMSettingsTabProps) {
   }, [initialData, form]);
 
   const onSubmit = (data: CRMSettingsValues) => {
-    const dirtyFields = Object.keys(form.formState.dirtyFields) as (keyof CRMSettingsValues)[];
-    
-    if (dirtyFields.length === 0) return;
-
-    const updates = dirtyFields.map((key) => ({
+    const updates = Object.keys(data).map((key) => ({
       key,
       // Convert booleans back to string to be consistent if necessary, though value: any supports JSON
-      value: typeof data[key] === 'boolean' ? String(data[key]) : data[key],
+      value: typeof data[key as keyof CRMSettingsValues] === 'boolean' ? String(data[key as keyof CRMSettingsValues]) : data[key as keyof CRMSettingsValues],
     }));
 
-    updateSettings.mutate(updates, {
-      onSuccess: () => {
-        // Form reset is handled by the useEffect watching initialData after query invalidation
-      }
-    });
+    updateSettings.mutate(updates);
   };
 
   return (

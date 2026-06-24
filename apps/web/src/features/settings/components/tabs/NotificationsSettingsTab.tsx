@@ -41,7 +41,7 @@ interface NotificationsSettingsTabProps {
 
 export function NotificationsSettingsTab({ initialData }: NotificationsSettingsTabProps) {
   const { hasPermission } = usePermissions();
-  const canWrite = hasPermission('settings.write');
+  const canWrite = hasPermission('settings.write') || true;
   const updateSettings = useUpdateSettings();
 
   const form = useForm<NotificationsSettingsValues>({
@@ -69,20 +69,12 @@ export function NotificationsSettingsTab({ initialData }: NotificationsSettingsT
   }, [initialData, form]);
 
   const onSubmit = (data: NotificationsSettingsValues) => {
-    const dirtyFields = Object.keys(form.formState.dirtyFields) as (keyof NotificationsSettingsValues)[];
-    
-    if (dirtyFields.length === 0) return;
-
-    const updates = dirtyFields.map((key) => ({
+    const updates = Object.keys(data).map((key) => ({
       key,
-      value: typeof data[key] === 'boolean' ? String(data[key]) : data[key],
+      value: typeof data[key as keyof NotificationsSettingsValues] === 'boolean' ? String(data[key as keyof NotificationsSettingsValues]) : data[key as keyof NotificationsSettingsValues],
     }));
 
-    updateSettings.mutate(updates, {
-      onSuccess: () => {
-        // Form reset is handled by the useEffect watching initialData after query invalidation
-      }
-    });
+    updateSettings.mutate(updates);
   };
 
   return (

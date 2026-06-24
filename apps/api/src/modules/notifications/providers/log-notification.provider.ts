@@ -27,4 +27,21 @@ export class LogNotificationProvider implements INotificationProvider {
       ======================================================
     `);
   }
+
+  async sendSystemNotification(
+    userId: string,
+    title: string,
+    message: string,
+    context?: any,
+  ): Promise<void> {
+    this.logger.log(`\n
+      🔔 [SYSTEM NOTIFICATION]
+      ======================================================
+      User ID: ${userId}
+      Title:   ${title}
+      Message: ${message}
+      Context: ${context ? JSON.stringify(context) : 'None'}
+      ======================================================
+    `);
+  }
 }

@@ -114,6 +114,12 @@
   }
   body {
     @apply bg-background text-foreground;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  /* Suaviza as mudanças na cor primária */
+  html {
+    transition: --primary 0.3s ease, --primary-foreground 0.3s ease;
   }
 
   /* Custom Scrollbar */

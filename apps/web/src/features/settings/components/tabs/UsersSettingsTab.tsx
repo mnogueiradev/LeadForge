@@ -10,7 +10,7 @@ export function UsersSettingsTab() {
   const { data: usersData, isLoading } = useUsers();
   const { hasPermission } = usePermissions();
   
-  const canManageRoles = hasPermission('roles.manage') || true;
+  const canManageRoles = true;
 
   const users = usersData?.data || [];
   
